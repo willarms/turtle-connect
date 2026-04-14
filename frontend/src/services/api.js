@@ -1,0 +1,43 @@
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: '/',
+})
+
+// Attach JWT to every request if present
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Auth
+export const register = (name, email, password) =>
+  api.post('/api/auth/register', { name, email, password })
+
+export const login = (email, password) =>
+  api.post('/api/auth/login', { email, password })
+
+// Users
+export const getMe = () => api.get('/api/users/me')
+export const updateProfile = (data) => api.put('/api/users/me/profile', data)
+
+// Groups
+export const getAllGroups = () => api.get('/api/groups')
+export const getMyGroups = () => api.get('/api/groups/my')
+export const getSuggestedGroups = () => api.get('/api/groups/suggested')
+export const getGroup = (id) => api.get(`/api/groups/${id}`)
+export const createGroup = (data) => api.post('/api/groups', data)
+export const joinGroup = (id) => api.post(`/api/groups/${id}/join`)
+export const toggleFavorite = (id) => api.post(`/api/groups/${id}/favorite`)
+
+// Matching
+export const runMatching = () => api.post('/api/match')
+
+// Guardian
+export const getGuardianDashboard = (seniorId) =>
+  api.get(`/api/guardian/${seniorId}/dashboard`)
+
+export default api
