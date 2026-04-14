@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Turtle Connect design tokens — matches Figma palette */
+:root {
+  --turtle-green: #5a7a5a;
+  --turtle-green-dark: #3d5a3d;
+  --turtle-green-light: #e8f0e8;
+  --turtle-bg: #f7f5f0;
+  --turtle-card: #ffffff;
+  --turtle-text: #2d2d2d;
+  --turtle-text-muted: #6b7280;
+  --turtle-border: #e5e7eb;
+}
+
+body {
+  margin: 0;
+  background-color: var(--turtle-bg);
+  color: var(--turtle-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
