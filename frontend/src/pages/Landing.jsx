@@ -25,13 +25,13 @@ export default function Landing() {
           <div className="flex gap-4 flex-wrap">
             <Link
               to="/login"
-              className="px-6 py-3 bg-[var(--turtle-green)] text-white rounded-md font-medium hover:bg-[var(--turtle-green-dark)] transition-colors"
+              className="px-8 py-4 bg-[var(--turtle-green)] text-white text-lg rounded-md font-medium hover:bg-[var(--turtle-green-dark)] transition-colors"
             >
               Get Started
             </Link>
             <Link
               to="/login"
-              className="px-6 py-3 border border-gray-300 rounded-md text-[var(--turtle-text)] font-medium hover:border-[var(--turtle-green)] transition-colors"
+              className="px-8 py-4 border border-gray-300 rounded-md text-[var(--turtle-text)] text-lg font-medium hover:border-[var(--turtle-green)] transition-colors"
             >
               Browse Groups
             </Link>
@@ -52,8 +52,8 @@ export default function Landing() {
             {HOW_IT_WORKS.map(item => (
               <div key={item.title} className="text-center p-4 border border-[var(--turtle-border)] rounded-xl">
                 <div className="text-3xl mb-3">{item.icon}</div>
-                <h3 className="font-semibold text-[var(--turtle-text)] mb-2 text-sm">{item.title}</h3>
-                <p className="text-[var(--turtle-text-muted)] text-xs leading-relaxed">{item.desc}</p>
+                <h3 className="font-semibold text-[var(--turtle-text)] mb-2 text-base">{item.title}</h3>
+                <p className="text-[var(--turtle-text-muted)] text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -71,7 +71,7 @@ export default function Landing() {
         </p>
         <Link
           to="/login"
-          className="px-8 py-3 bg-[var(--turtle-green)] text-white rounded-md font-medium hover:bg-[var(--turtle-green-dark)] transition-colors"
+          className="px-8 py-4 bg-[var(--turtle-green)] text-white text-lg rounded-md font-medium hover:bg-[var(--turtle-green-dark)] transition-colors"
         >
           Create Your Profile
         </Link>
