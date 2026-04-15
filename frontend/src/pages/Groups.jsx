@@ -7,39 +7,39 @@ function GroupCard({ group, onJoin, onFavorite }) {
   return (
     <div className="bg-white border border-[var(--turtle-border)] rounded-xl p-4">
       <div className="flex items-start justify-between mb-2">
-        <h3 className="font-semibold text-[var(--turtle-text)] text-sm">{group.name}</h3>
+        <h3 className="font-semibold text-[var(--turtle-text)] text-base">{group.name}</h3>
         <div className="flex gap-2">
           <button
             onClick={() => onFavorite(group.id)}
-            className={`text-lg transition-colors ${group.is_favorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
+            className={`text-xl transition-colors ${group.is_favorite ? 'text-yellow-400' : 'text-gray-400 hover:text-yellow-300'}`}
             title="Favorite"
           >
             ★
           </button>
         </div>
       </div>
-      <p className="text-[var(--turtle-text-muted)] text-xs mb-3 leading-relaxed">{group.description}</p>
+      <p className="text-[var(--turtle-text-muted)] text-sm mb-3 leading-relaxed">{group.description}</p>
       <div className="flex flex-wrap gap-1 mb-3">
         {group.topics.slice(0, 3).map(t => (
-          <span key={t} className="px-2 py-0.5 bg-[var(--turtle-green-light)] text-[var(--turtle-green)] text-xs rounded-full">
+          <span key={t} className="px-2 py-1 bg-[var(--turtle-green-light)] text-[var(--turtle-green)] text-sm rounded-full">
             {t}
           </span>
         ))}
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[var(--turtle-text-muted)]">{group.member_count} members</span>
+        <span className="text-sm text-[var(--turtle-text-muted)]">{group.member_count} members</span>
         <div className="flex gap-2">
           {!group.is_member && (
             <button
               onClick={() => onJoin(group.id)}
-              className="px-3 py-1.5 bg-[var(--turtle-green)] text-white text-xs rounded-lg hover:bg-[var(--turtle-green-dark)] transition-colors"
+              className="px-4 py-2.5 bg-[var(--turtle-green)] text-white text-sm rounded-lg hover:bg-[var(--turtle-green-dark)] transition-colors"
             >
               Join
             </button>
           )}
           <Link
             to={`/groups/${group.id}`}
-            className="px-3 py-1.5 border border-[var(--turtle-border)] text-xs text-[var(--turtle-text)] rounded-lg hover:border-[var(--turtle-green)] transition-colors"
+            className="px-4 py-2.5 border border-[var(--turtle-border)] text-sm text-[var(--turtle-text)] rounded-lg hover:border-[var(--turtle-green)] transition-colors"
           >
             View Group
           </Link>
@@ -102,14 +102,14 @@ export default function Groups() {
           </div>
           <Link
             to="#"
-            className="px-4 py-2 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-sm rounded-lg hover:bg-[var(--turtle-green-light)] transition-colors"
+            className="px-4 py-3 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-base rounded-lg hover:bg-[var(--turtle-green-light)] transition-colors"
           >
             + Create Group
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 text-sm border-b border-[var(--turtle-border)] pb-2">
+        <div className="flex gap-4 mb-6 text-base border-b border-[var(--turtle-border)] pb-2">
           <button
             onClick={() => setTab('all')}
             className={`pb-1 font-medium transition-colors ${tab === 'all' ? 'text-[var(--turtle-text)] border-b-2 border-[var(--turtle-green)]' : 'text-[var(--turtle-text-muted)]'}`}
@@ -136,7 +136,7 @@ export default function Groups() {
 
         {suggested.length > 0 && (
           <>
-            <h2 className="text-lg font-semibold text-[var(--turtle-text)] mb-4">Suggested For You</h2>
+            <h2 className="text-xl font-semibold text-[var(--turtle-text)] mb-4">Suggested For You</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               {suggested.filter(g => !g.is_member).map(g => (
                 <GroupCard key={g.id} group={g} onJoin={handleJoin} onFavorite={handleFavorite} />
@@ -147,12 +147,12 @@ export default function Groups() {
 
         <div className="bg-[var(--turtle-green-light)] rounded-xl p-6 text-center">
           <p className="font-medium text-[var(--turtle-text)] mb-2">Want to explore more interests?</p>
-          <p className="text-[var(--turtle-text-muted)] text-sm mb-4">
+          <p className="text-[var(--turtle-text-muted)] text-base mb-4">
             Update your profile to discover even more groups
           </p>
           <Link
             to="/profile"
-            className="px-5 py-2 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-sm rounded-lg hover:bg-white transition-colors"
+            className="px-5 py-3 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-base rounded-lg hover:bg-white transition-colors"
           >
             Update Profile
           </Link>

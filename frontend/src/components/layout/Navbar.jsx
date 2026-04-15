@@ -11,31 +11,31 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <nav className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
       <Link to="/" className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-[var(--turtle-green)] flex items-center justify-center">
-          <span className="text-white text-xs font-bold">T</span>
+        <div className="w-10 h-10 rounded-full bg-[var(--turtle-green)] flex items-center justify-center">
+          <span className="text-white text-sm font-bold">T</span>
         </div>
         <div>
-          <div className="font-semibold text-[var(--turtle-text)] text-sm leading-tight">Turtle</div>
-          <div className="text-[10px] text-[var(--turtle-text-muted)] leading-tight">Connect at Your Own Pace</div>
+          <div className="font-semibold text-[var(--turtle-text)] text-base leading-tight">Turtle</div>
+          <div className="text-xs text-[var(--turtle-text-muted)] leading-tight">Connect at Your Own Pace</div>
         </div>
       </Link>
 
       {user ? (
-        <div className="flex items-center gap-6 text-sm text-[var(--turtle-text-muted)]">
-          <Link to="/groups" className="hover:text-[var(--turtle-green)] transition-colors flex items-center gap-1">
+        <div className="flex items-center gap-6 text-base text-[var(--turtle-text-muted)]">
+          <Link to="/groups" className="py-1 hover:text-[var(--turtle-green)] transition-colors flex items-center gap-1">
             My Groups
           </Link>
-          <Link to="/profile" className="hover:text-[var(--turtle-green)] transition-colors">
+          <Link to="/profile" className="py-1 hover:text-[var(--turtle-green)] transition-colors">
             Profile
           </Link>
-          <Link to="/guardian" className="hover:text-[var(--turtle-green)] transition-colors">
+          <Link to="/guardian" className="py-1 hover:text-[var(--turtle-green)] transition-colors">
             Guardian
           </Link>
           <button
             onClick={handleLogout}
-            className="hover:text-[var(--turtle-green)] transition-colors"
+            className="px-2 py-1 hover:text-[var(--turtle-green)] transition-colors"
           >
             Logout
           </button>
@@ -43,7 +43,7 @@ export default function Navbar() {
       ) : (
         <Link
           to="/login"
-          className="px-4 py-2 border border-gray-300 rounded-md text-sm text-[var(--turtle-text)] hover:border-[var(--turtle-green)] transition-colors"
+          className="px-5 py-3 border border-gray-300 rounded-md text-base text-[var(--turtle-text)] hover:border-[var(--turtle-green)] transition-colors"
         >
           Login
         </Link>

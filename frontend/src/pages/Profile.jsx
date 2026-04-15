@@ -55,17 +55,17 @@ export default function Profile() {
         <h1 className="text-xl font-bold text-[var(--turtle-text)] mb-6">Edit Profile</h1>
 
         <div className="mb-6">
-          <label className="block font-medium text-[var(--turtle-text)] mb-2 text-sm">Your Name</label>
+          <label className="block font-medium text-[var(--turtle-text)] mb-2 text-base">Your Name</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full px-4 py-3 border border-[var(--turtle-border)] rounded-lg text-sm focus:outline-none focus:border-[var(--turtle-green)] bg-[var(--turtle-bg)]"
+            className="w-full px-4 py-4 border border-[var(--turtle-border)] rounded-lg text-base focus:outline-none focus:border-[var(--turtle-green)] bg-[var(--turtle-bg)]"
           />
         </div>
 
         <div className="mb-6">
-          <label className="block font-medium text-[var(--turtle-text)] mb-1 text-sm">
+          <label className="block font-medium text-[var(--turtle-text)] mb-1 text-base">
             Your Interests ({selected.length} selected)
           </label>
           <div className="grid grid-cols-4 gap-3 mt-3">
@@ -73,14 +73,14 @@ export default function Profile() {
               <button
                 key={label}
                 onClick={() => toggle(label)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all text-center ${
                   selected.includes(label)
                     ? 'border-[var(--turtle-green)] bg-[var(--turtle-green-light)]'
                     : 'border-[var(--turtle-border)] hover:border-[var(--turtle-green)] bg-white'
                 }`}
               >
-                <span className="text-2xl mb-1">{emoji}</span>
-                <span className="text-xs font-medium text-[var(--turtle-text)]">{label}</span>
+                <span className="text-3xl mb-1">{emoji}</span>
+                <span className="text-sm font-medium text-[var(--turtle-text)]">{label}</span>
               </button>
             ))}
           </div>
@@ -88,8 +88,8 @@ export default function Profile() {
 
         <div className="mb-6 flex items-center justify-between p-4 border border-[var(--turtle-border)] rounded-xl">
           <div>
-            <p className="font-medium text-[var(--turtle-text)] text-sm">Guardian Monitoring</p>
-            <p className="text-xs text-[var(--turtle-text-muted)] mt-0.5">
+            <p className="font-medium text-[var(--turtle-text)] text-base">Guardian Monitoring</p>
+            <p className="text-sm text-[var(--turtle-text-muted)] mt-0.5">
               Allow a guardian to monitor your activity for safety
             </p>
           </div>
@@ -105,13 +105,13 @@ export default function Profile() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3 bg-[var(--turtle-green)] text-white rounded-lg font-medium hover:bg-[var(--turtle-green-dark)] transition-colors disabled:opacity-50"
+            className="flex-1 py-4 bg-[var(--turtle-green)] text-white text-lg rounded-lg font-medium hover:bg-[var(--turtle-green-dark)] transition-colors disabled:opacity-50"
           >
             {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
           </button>
           <button
             onClick={() => navigate('/groups')}
-            className="px-6 py-3 border border-[var(--turtle-border)] rounded-lg text-sm text-[var(--turtle-text)] hover:border-[var(--turtle-green)] transition-colors"
+            className="px-6 py-4 border border-[var(--turtle-border)] rounded-lg text-base text-[var(--turtle-text)] hover:border-[var(--turtle-green)] transition-colors"
           >
             Cancel
           </button>

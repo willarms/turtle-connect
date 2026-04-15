@@ -119,31 +119,31 @@ export default function Assessment() {
             <span className="text-[var(--turtle-green)] text-lg">🧭</span>
             <span className="font-semibold text-[var(--turtle-text)]">Personality Assessment</span>
           </div>
-          <span className="text-sm text-[var(--turtle-text-muted)]">
+          <span className="text-base text-[var(--turtle-text-muted)]">
             Question {current + 1} of {QUESTIONS.length}
           </span>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-[var(--turtle-border)] rounded-full h-1.5 mb-4">
+        <div className="w-full bg-[var(--turtle-border)] rounded-full h-2.5 mb-4">
           <div
-            className="bg-[var(--turtle-green)] h-1.5 rounded-full transition-all duration-300"
+            className="bg-[var(--turtle-green)] h-2.5 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <p className="text-sm text-[var(--turtle-text-muted)] mb-4">
+        <p className="text-base text-[var(--turtle-text-muted)] mb-4">
           Help us understand your personality to find the best matches for you
         </p>
 
-        <h2 className="text-lg font-semibold text-[var(--turtle-text)] mb-4">{q.question}</h2>
+        <h2 className="text-xl font-semibold text-[var(--turtle-text)] mb-4">{q.question}</h2>
 
         <div className="space-y-2 mb-8">
           {q.options.map(option => (
             <button
               key={option}
               onClick={() => selectAnswer(option)}
-              className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${
+              className={`w-full text-left px-4 py-4 rounded-lg border text-base transition-all ${
                 selected === option
                   ? 'border-[var(--turtle-green)] bg-[var(--turtle-green-light)] text-[var(--turtle-text)]'
                   : 'border-[var(--turtle-border)] hover:border-gray-300 text-[var(--turtle-text)]'
@@ -158,14 +158,14 @@ export default function Assessment() {
           <button
             onClick={prev}
             disabled={current === 0}
-            className="flex items-center gap-1 text-sm text-[var(--turtle-text-muted)] hover:text-[var(--turtle-text)] disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1 text-base text-[var(--turtle-text-muted)] hover:text-[var(--turtle-text)] disabled:opacity-40 transition-colors"
           >
             ← Previous
           </button>
           <button
             onClick={next}
             disabled={!selected || saving}
-            className="flex items-center gap-1 px-5 py-2 bg-[var(--turtle-green)] text-white text-sm rounded-lg hover:bg-[var(--turtle-green-dark)] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1 px-6 py-4 bg-[var(--turtle-green)] text-white text-base rounded-lg hover:bg-[var(--turtle-green-dark)] disabled:opacity-50 transition-colors"
           >
             {saving ? 'Saving...' : current === QUESTIONS.length - 1 ? 'Finish' : 'Next →'}
           </button>
