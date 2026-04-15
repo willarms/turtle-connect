@@ -1,20 +1,70 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getGroup, joinGroup } from '../services/api'
+import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup } from '../services/api'
 
 export default function GroupDetail() {
   const { id } = useParams()
   const [group, setGroup] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [meetError, setMeetError] = useState('')
+  const [meetCreating, setMeetCreating] = useState(false)
 
   useEffect(() => {
-    getGroup(id).then(res => setGroup(res.data)).finally(() => setLoading(false))
+    getGroup(id)
+      .then(async res => {
+        setGroup(res.data)
+        // If we just returned from calendar OAuth, auto-create the meet link
+        const pending = sessionStorage.getItem('pending_meet_group')
+        if (pending === id && !res.data.google_meet_url) {
+          sessionStorage.removeItem('pending_meet_group')
+          setMeetCreating(true)
+          try {
+            const linkRes = await createMeetLink(id)
+            if (linkRes.data.needs_calendar_auth) {
+              setMeetError('Calendar permission not granted. Please try creating the link again.')
+            } else {
+              const refreshed = await getGroup(id)
+              setGroup(refreshed.data)
+            }
+          } catch (err) {
+            setMeetError(err.response?.data?.detail || 'Failed to create Meet link. See backend logs for details.')
+          } finally {
+            setMeetCreating(false)
+          }
+        }
+      })
+      .finally(() => setLoading(false))
   }, [id])
 
   const handleJoin = async () => {
     await joinGroup(id)
     const res = await getGroup(id)
     setGroup(res.data)
+  }
+
+  const handleCreateMeetLink = async () => {
+    const res = await createMeetLink(id)
+    if (res.data.needs_calendar_auth) {
+      // Kick off incremental OAuth to get calendar.events scope
+      const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0')).join('')
+      const encoder = new TextEncoder()
+      const data = encoder.encode(verifier)
+      const digest = await crypto.subtle.digest('SHA-256', data)
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+      const state = crypto.randomUUID()
+      sessionStorage.setItem('pkce_verifier', verifier)
+      sessionStorage.setItem('oauth_state', state)
+      sessionStorage.setItem('post_oauth_group', id)   // redirect here after auth
+      sessionStorage.setItem('pending_meet_group', id) // auto-trigger creation on return
+      const authRes = await getGoogleAuthorizeUrl('calendar', state, challenge)
+      window.location.href = authRes.data.authorize_url
+    } else {
+      // Success — reload group to show the new Meet link
+      const groupRes = await getGroup(id)
+      setGroup(groupRes.data)
+    }
   }
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-[var(--turtle-text-muted)]">Loading...</p></div>
@@ -54,13 +104,37 @@ export default function GroupDetail() {
           </div>
 
           {group.is_member ? (
-            <div className="border-t border-[var(--turtle-border)] pt-4">
+            <div className="border-t border-[var(--turtle-border)] pt-4 space-y-3">
               <p className="text-base text-[var(--turtle-green)] font-medium text-center">
                 You are a member of this group
               </p>
-              <p className="text-sm text-[var(--turtle-text-muted)] text-center mt-1">
-                Group chat and calling features coming soon
-              </p>
+
+              {meetError && (
+                <p className="text-red-600 text-sm text-center bg-red-50 rounded-lg p-3">{meetError}</p>
+              )}
+
+              {meetCreating && (
+                <p className="text-[var(--turtle-text-muted)] text-sm text-center">Creating Meet link...</p>
+              )}
+
+              {group.google_meet_url ? (
+                <a
+                  href={group.google_meet_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-4 bg-[var(--turtle-green)] text-white text-lg rounded-lg font-medium hover:bg-[var(--turtle-green-dark)] transition-colors"
+                >
+                  📹 Join Google Meet
+                </a>
+              ) : (
+                <button
+                  onClick={handleCreateMeetLink}
+                  disabled={meetCreating}
+                  className="flex items-center justify-center gap-2 w-full py-4 border-2 border-[var(--turtle-green)] text-[var(--turtle-green)] text-lg rounded-lg font-medium hover:bg-[var(--turtle-green-light)] transition-colors disabled:opacity-50"
+                >
+                  🔗 {meetCreating ? 'Creating...' : 'Create Meet Link'}
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-[var(--turtle-green-light)] rounded-xl p-4 text-center">

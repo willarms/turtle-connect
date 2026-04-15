@@ -15,6 +15,8 @@ class Group(Base):
     description = Column(Text, default="")
     topics_json = Column(Text, default="[]")
     created_at = Column(DateTime, default=datetime.utcnow)
+    google_meet_url = Column(String, nullable=True)
+    meet_event_id = Column(String, nullable=True)
 
     memberships = relationship("GroupMembership", back_populates="group")
     messages = relationship("Message", back_populates="group")
