@@ -23,15 +23,19 @@ export default function Guardian() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.id) {
-      getGuardianDashboard(user.id)
-        .then(res => setData(res.data))
-        .finally(() => setLoading(false))
-    }
+    if (!user?.id) return
+  
+    const fetchData = () =>
+      getGuardianDashboard(user.id).then(res => setData(res.data))
+  
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+  
+    return () => clearInterval(interval)
   }, [user])
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-[var(--turtle-text-muted)]">Loading dashboard...</p></div>
-  if (!data) return null
+  if (!data) return <div>No dashboard data</div>
 
   const stats = [
     { label: 'Total Calls', value: data.total_calls, sub: 'This week', icon: '📞' },
