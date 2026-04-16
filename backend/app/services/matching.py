@@ -202,8 +202,6 @@ def validate_and_save_groups(
             raise ValueError(f"Group '{group['group_name']}' must have at least one member.")
 
         for uid in group["member_user_ids"]:
-            if uid in seen_user_ids:
-                raise ValueError(f"User {uid} appears in more than one group.")
             seen_user_ids.add(uid)
             all_output_user_ids.append(uid)
 
