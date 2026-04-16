@@ -7,12 +7,6 @@ Meet link creation uses: calendar.events (incremental auth, requested separately
 import json
 import secrets
 import urllib.parse
-import hashlib
-import json
-import os
-import secrets
-import urllib.parse
-from typing import Optional
 
 import httpx
 
@@ -25,11 +19,6 @@ GOOGLE_CALENDAR_ENDPOINT = "https://www.googleapis.com/calendar/v3/calendars/pri
 
 
 def build_authorize_url(scopes: list[str], state: str, code_challenge: str) -> str:
-def build_authorize_url(
-    scopes: list[str],
-    state: str,
-    code_challenge: str,
-) -> str:
     """Build the Google OAuth 2.0 consent URL using PKCE."""
     params = {
         "client_id": settings.google_client_id,

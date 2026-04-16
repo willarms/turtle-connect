@@ -136,9 +136,6 @@ async def create_group_meet_link(
     if not membership:
         raise HTTPException(status_code=403, detail="You must be a member to create a Meet link")
 
-    if group.google_meet_url:
-        return _serialize_group(group, current_user.id)
-
     # Already has a link — just return it
     if group.google_meet_url:
         return _serialize_group(group, current_user.id)
