@@ -14,7 +14,7 @@ from app.services.google_oauth import create_meet_link, refresh_access_token
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
 
-def _serialize_group(group: Group, user_id: int, include_meet: bool = True) -> dict:
+def _serialize_group(group: Group, user_id: int) -> dict:
     membership = next((m for m in group.memberships if m.user_id == user_id), None)
     return {
         "id": group.id,
@@ -119,11 +119,7 @@ async def create_group_meet_link(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Generate a Google Meet link for the group.
-    The current user must be a member and must have granted calendar access.
-    Returns { needs_calendar_auth: true } if calendar scope is not yet granted.
-    """
+    """Generate a Google Meet link for the group."""
     group = db.query(Group).filter(Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
@@ -136,14 +132,11 @@ async def create_group_meet_link(
     if not membership:
         raise HTTPException(status_code=403, detail="You must be a member to create a Meet link")
 
-    if group.google_meet_url:
-        return _serialize_group(group, current_user.id)
-
     # Already has a link — just return it
     if group.google_meet_url:
         return _serialize_group(group, current_user.id)
 
-    # Check if user has a stored refresh token (calendar auth)
+    # No calendar refresh token — need OAuth
     if not current_user.google_refresh_token:
         return {"needs_calendar_auth": True}
 
@@ -160,10 +153,6 @@ async def create_group_meet_link(
         print(f"[meet-link] create_meet_link failed: {exc}")
         if isinstance(exc, _httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
             print(f"[meet-link] Google response body: {exc.response.text}")
-        # 401/403 = token lacks calendar scope → send user back through OAuth
-        if isinstance(exc, _httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
-            body = exc.response.text
-            print(f"[meet-link] Google response body: {body}")
             return {"needs_calendar_auth": True}
         raise HTTPException(status_code=502, detail=f"Google Calendar API error: {exc}")
 

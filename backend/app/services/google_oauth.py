@@ -7,12 +7,6 @@ Meet link creation uses: calendar.events (incremental auth, requested separately
 import json
 import secrets
 import urllib.parse
-import hashlib
-import json
-import os
-import secrets
-import urllib.parse
-from typing import Optional
 
 import httpx
 
@@ -25,11 +19,6 @@ GOOGLE_CALENDAR_ENDPOINT = "https://www.googleapis.com/calendar/v3/calendars/pri
 
 
 def build_authorize_url(scopes: list[str], state: str, code_challenge: str) -> str:
-def build_authorize_url(
-    scopes: list[str],
-    state: str,
-    code_challenge: str,
-) -> str:
     """Build the Google OAuth 2.0 consent URL using PKCE."""
     params = {
         "client_id": settings.google_client_id,
@@ -40,7 +29,7 @@ def build_authorize_url(
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
         "access_type": "offline",
-        "prompt": "consent",  # force refresh_token to be returned every time
+        "prompt": "consent",
     }
     return f"{GOOGLE_AUTH_ENDPOINT}?{urllib.parse.urlencode(params)}"
 
@@ -124,6 +113,4 @@ async def create_meet_link(access_token: str, group_name: str) -> dict:
         )
         resp.raise_for_status()
         data = resp.json()
-        hang_link = data.get("hangoutLink", "")
-        event_id = data.get("id", "")
-        return {"meet_url": hang_link, "event_id": event_id}
+        return {"meet_url": data.get("hangoutLink", ""), "event_id": data.get("id", "")}

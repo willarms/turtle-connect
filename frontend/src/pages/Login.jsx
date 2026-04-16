@@ -11,28 +11,6 @@ export default function Login() {
   const { login, register } = useAuth()
   const navigate = useNavigate()
 
-  const handleGoogleSignIn = async () => {
-    // Generate PKCE code verifier + challenge
-    const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-      .map(b => b.toString(16).padStart(2, '0')).join('')
-    const encoder = new TextEncoder()
-    const data = encoder.encode(verifier)
-    const digest = await crypto.subtle.digest('SHA-256', data)
-    const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-    const state = crypto.randomUUID()
-
-    sessionStorage.setItem('pkce_verifier', verifier)
-    sessionStorage.setItem('oauth_state', state)
-
-    try {
-      const res = await getGoogleAuthorizeUrl('login', state, challenge)
-      window.location.href = res.data.authorize_url
-    } catch {
-      setError('Google sign-in is not available right now.')
-    }
-  }
-
   const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
 
   const handleSubmit = async (e) => {
@@ -138,7 +116,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Google SSO divider */}
         <div className="flex items-center gap-3 mt-5 mb-4">
           <div className="flex-1 h-px bg-[var(--turtle-border)]" />
           <span className="text-sm text-[var(--turtle-text-muted)]">or</span>

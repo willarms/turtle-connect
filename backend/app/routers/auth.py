@@ -1,4 +1,3 @@
-import hashlib
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -65,29 +64,6 @@ LOGIN_SCOPES = ["openid", "email", "profile"]
 CALENDAR_SCOPES = LOGIN_SCOPES + ["https://www.googleapis.com/auth/calendar.events"]
 
 
-@router.get("/google/authorize-url", response_model=GoogleAuthorizeResponse)
-def google_authorize_url(scope: str = Query("login")):
-    """
-    Returns a Google OAuth consent URL.
-    scope='login'    → openid email profile
-    scope='calendar' → adds calendar.events (incremental auth for Meet links)
-    """
-    if not settings.google_client_id:
-        raise HTTPException(status_code=503, detail="Google OAuth not configured")
-
-    scopes = CALENDAR_SCOPES if scope == "calendar" else LOGIN_SCOPES
-
-    # The PKCE code_challenge is generated client-side; we just build the URL
-    # with a placeholder state here. The real challenge comes from the frontend.
-    # This endpoint is actually called with the challenge pre-computed by the
-    # frontend, but we keep the endpoint simple — the frontend passes the
-    # code_challenge as a query param as well.
-    raise HTTPException(
-        status_code=400,
-        detail="Pass code_challenge and state as query params",
-    )
-
-
 @router.get("/google/authorize-url-v2", response_model=GoogleAuthorizeResponse)
 def google_authorize_url_v2(
     scope: str = Query("login"),
@@ -129,13 +105,11 @@ async def google_callback(body: GoogleCallbackRequest, db: Session = Depends(get
     email = user_info["email"]
     name = user_info["name"]
 
-    # Find existing user by google_id first, then by email
     user = db.query(User).filter(User.google_id == google_id).first()
     if not user and email:
         user = get_user_by_email(db, email)
 
     if user:
-        # Update google_id and refresh token if we have newer data
         if not user.google_id:
             user.google_id = google_id
         if refresh_token:
@@ -143,7 +117,6 @@ async def google_callback(body: GoogleCallbackRequest, db: Session = Depends(get
         db.commit()
         db.refresh(user)
     else:
-        # Create new Google-SSO user (no password)
         user = User(
             email=email,
             name=name,
