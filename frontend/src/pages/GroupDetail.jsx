@@ -43,6 +43,33 @@ export default function GroupDetail() {
   }
 
   const handleCreateMeetLink = async () => {
+    setMeetError('')
+    setMeetCreating(true)
+    try {
+      const res = await createMeetLink(id)
+      if (res.data.needs_calendar_auth) {
+        const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+          .map(b => b.toString(16).padStart(2, '0')).join('')
+        const encoder = new TextEncoder()
+        const data = encoder.encode(verifier)
+        const digest = await crypto.subtle.digest('SHA-256', data)
+        const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+        const state = crypto.randomUUID()
+        sessionStorage.setItem('pkce_verifier', verifier)
+        sessionStorage.setItem('oauth_state', state)
+        sessionStorage.setItem('post_oauth_group', id)
+        sessionStorage.setItem('pending_meet_group', id)
+        const authRes = await getGoogleAuthorizeUrl('calendar', state, challenge)
+        window.location.href = authRes.data.authorize_url
+      } else {
+        const groupRes = await getGroup(id)
+        setGroup(groupRes.data)
+      }
+    } catch (err) {
+      setMeetError(err.response?.data?.detail || 'Failed to create Meet link.')
+    } finally {
+      setMeetCreating(false)
     const res = await createMeetLink(id)
     if (res.data.needs_calendar_auth) {
       // Kick off incremental OAuth to get calendar.events scope

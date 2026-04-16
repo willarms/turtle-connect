@@ -136,6 +136,9 @@ async def create_group_meet_link(
     if not membership:
         raise HTTPException(status_code=403, detail="You must be a member to create a Meet link")
 
+    if group.google_meet_url:
+        return _serialize_group(group, current_user.id)
+
     # Already has a link — just return it
     if group.google_meet_url:
         return _serialize_group(group, current_user.id)
@@ -155,6 +158,8 @@ async def create_group_meet_link(
     except Exception as exc:
         import httpx as _httpx
         print(f"[meet-link] create_meet_link failed: {exc}")
+        if isinstance(exc, _httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
+            print(f"[meet-link] Google response body: {exc.response.text}")
         # 401/403 = token lacks calendar scope → send user back through OAuth
         if isinstance(exc, _httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
             body = exc.response.text

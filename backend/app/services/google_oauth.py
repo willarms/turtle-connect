@@ -4,6 +4,9 @@ Google OAuth 2.0 helpers for SSO login and Google Meet link creation.
 Login uses scopes: openid email profile
 Meet link creation uses: calendar.events (incremental auth, requested separately)
 """
+import json
+import secrets
+import urllib.parse
 import hashlib
 import json
 import os
@@ -21,6 +24,7 @@ GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 GOOGLE_CALENDAR_ENDPOINT = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
 
+def build_authorize_url(scopes: list[str], state: str, code_challenge: str) -> str:
 def build_authorize_url(
     scopes: list[str],
     state: str,
