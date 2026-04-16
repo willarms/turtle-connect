@@ -9,6 +9,7 @@ from app.models.group import Group, GroupMembership
 from app.models.user import User
 from app.schemas.group import GroupCreate, GroupOut
 from app.services.matching import get_suggested_groups
+from app.services.google_oauth import create_meet_link, refresh_access_token
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
@@ -24,6 +25,7 @@ def _serialize_group(group: Group, user_id: int) -> dict:
         "created_at": group.created_at,
         "is_favorite": membership.is_favorite if membership else False,
         "is_member": membership is not None,
+        "google_meet_url": group.google_meet_url,
     }
 
 
@@ -108,6 +110,57 @@ def join_group(
         db.commit()
         db.refresh(group)
 
+    return _serialize_group(group, current_user.id)
+
+
+@router.post("/{group_id}/meet-link")
+async def create_group_meet_link(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a Google Meet link for the group.
+    Returns { needs_calendar_auth: true } if calendar scope is not yet granted.
+    """
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    membership = (
+        db.query(GroupMembership)
+        .filter_by(user_id=current_user.id, group_id=group_id)
+        .first()
+    )
+    if not membership:
+        raise HTTPException(status_code=403, detail="You must be a member to create a Meet link")
+
+    if group.google_meet_url:
+        return _serialize_group(group, current_user.id)
+
+    if not current_user.google_refresh_token:
+        return {"needs_calendar_auth": True}
+
+    try:
+        access_token = await refresh_access_token(current_user.google_refresh_token)
+    except Exception as exc:
+        print(f"[meet-link] refresh_access_token failed: {exc}")
+        return {"needs_calendar_auth": True}
+
+    try:
+        result = await create_meet_link(access_token, group.name)
+    except Exception as exc:
+        import httpx as _httpx
+        print(f"[meet-link] create_meet_link failed: {exc}")
+        if isinstance(exc, _httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
+            print(f"[meet-link] Google response body: {exc.response.text}")
+            return {"needs_calendar_auth": True}
+        raise HTTPException(status_code=502, detail=f"Google Calendar API error: {exc}")
+
+    group.google_meet_url = result["meet_url"]
+    group.meet_event_id = result["event_id"]
+    db.commit()
+    db.refresh(group)
     return _serialize_group(group, current_user.id)
 
 

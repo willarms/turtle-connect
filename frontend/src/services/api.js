@@ -40,4 +40,16 @@ export const runMatching = () => api.post('/api/match')
 export const getGuardianDashboard = (seniorId) =>
   api.get(`/api/guardian/${seniorId}/dashboard`)
 
+// Google OAuth
+export const getGoogleAuthorizeUrl = (scope, state, codeChallenge) =>
+  api.get('/api/auth/google/authorize-url-v2', {
+    params: { scope, state, code_challenge: codeChallenge },
+  })
+
+export const googleCallback = (code, codeVerifier) =>
+  api.post('/api/auth/google/callback', { code, code_verifier: codeVerifier })
+
+export const createMeetLink = (groupId) =>
+  api.post(`/api/groups/${groupId}/meet-link`)
+
 export default api
