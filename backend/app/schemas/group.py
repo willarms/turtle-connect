@@ -13,6 +13,7 @@ class GroupOut(BaseModel):
     created_at: datetime
     is_favorite: bool = False
     is_member: bool = False
+    google_meet_url: Optional[str] = None
 
     class Config:
         from_attributes = True

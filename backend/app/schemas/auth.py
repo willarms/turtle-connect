@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -15,3 +17,13 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class GoogleAuthorizeResponse(BaseModel):
+    authorize_url: str
+
+
+class GoogleCallbackRequest(BaseModel):
+    code: str
+    code_verifier: str
+    redirect_uri: Optional[str] = None

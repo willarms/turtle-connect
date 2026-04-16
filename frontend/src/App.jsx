@@ -8,6 +8,7 @@ import Groups from './pages/Groups'
 import Guardian from './pages/Guardian'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
+import OAuthCallback from './pages/OAuthCallback'
 import Profile from './pages/Profile'
 import ProfileSetup from './pages/ProfileSetup'
 
@@ -28,6 +29,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
             <Route path="/setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
             <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
             <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />

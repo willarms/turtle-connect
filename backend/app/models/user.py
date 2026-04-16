@@ -12,8 +12,10 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)
     name = Column(String, nullable=False)
+    google_id = Column(String, unique=True, nullable=True, index=True)
+    google_refresh_token = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
 
