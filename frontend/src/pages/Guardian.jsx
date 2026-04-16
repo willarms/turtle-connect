@@ -25,13 +25,26 @@ export default function Guardian() {
   useEffect(() => {
     if (!user?.id) return
   
-    const fetchData = () =>
-      getGuardianDashboard(user.id).then(res => setData(res.data))
+    let mounted = true
+    setLoading(true)
+  
+    const fetchData = async () => {
+      try {
+        const res = await getGuardianDashboard(user.id)
+        if (mounted) setData(res.data)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
   
     fetchData()
+  
     const interval = setInterval(fetchData, 30000)
   
-    return () => clearInterval(interval)
+    return () => {
+      mounted = false
+      clearInterval(interval)
+    }
   }, [user])
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-[var(--turtle-text-muted)]">Loading dashboard...</p></div>
@@ -56,7 +69,7 @@ export default function Guardian() {
         </p>
 
         {/* Alerts */}
-        {data.alerts.length > 0 && (
+        {data?.alerts?.length > 0 && (
           <div className="bg-white border border-[var(--turtle-border)] rounded-xl p-4 mb-6">
             <h2 className="font-semibold text-[var(--turtle-text)] mb-2 text-sm flex items-center gap-1">
               ⚠ Alerts &amp; Notifications
