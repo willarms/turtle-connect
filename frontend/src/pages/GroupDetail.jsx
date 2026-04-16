@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup } from '../services/api'
 
