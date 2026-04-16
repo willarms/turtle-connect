@@ -32,6 +32,27 @@ export default function Login() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+    const encoder = new TextEncoder()
+    const data = encoder.encode(verifier)
+    const digest = await crypto.subtle.digest('SHA-256', data)
+    const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+    const state = crypto.randomUUID()
+
+    sessionStorage.setItem('pkce_verifier', verifier)
+    sessionStorage.setItem('oauth_state', state)
+
+    try {
+      const res = await getGoogleAuthorizeUrl('login', state, challenge)
+      window.location.href = res.data.authorize_url
+    } catch {
+      setError('Google sign-in is not available right now.')
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--turtle-bg)] px-4">
       <div className="bg-white rounded-2xl border border-[var(--turtle-border)] p-8 w-full max-w-sm shadow-sm">
