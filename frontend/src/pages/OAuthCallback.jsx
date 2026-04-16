@@ -3,6 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { googleCallback } from '../services/api'
 
+/**
+ * Mounted at /auth/callback.
+ * Google redirects here after the user grants consent.
+ * We exchange the code for a JWT, store it, then redirect.
+ */
 export default function OAuthCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -10,6 +15,7 @@ export default function OAuthCallback() {
   const ranOnce = useRef(false)
 
   useEffect(() => {
+    // Prevent StrictMode double-invocation from running the exchange twice
     if (ranOnce.current) return
     ranOnce.current = true
 
