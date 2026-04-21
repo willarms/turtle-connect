@@ -113,7 +113,7 @@ export default function Profile() {
             onClick={() => navigate('/groups')}
             className="px-6 py-4 border border-[var(--turtle-border)] rounded-lg text-base text-[var(--turtle-text)] hover:border-[var(--turtle-green)] transition-colors"
           >
-            Cancel
+            Close
           </button>
         </div>
       </div>
