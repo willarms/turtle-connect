@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -13,7 +13,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useAuth } from '../context/AuthContext'
-import { getGuardianDashboard } from '../services/api'
+import { getGuardianDashboard, sendGuardianReport } from '../services/api'
 
 const COLORS = ['#5a7a5a', '#8ba88b', '#b5c9b5', '#d4e0d4']
 
@@ -21,6 +21,9 @@ export default function Guardian() {
   const { user } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const sentTimer = useRef(null)
 
   useEffect(() => {
     if (!user?.id) return
@@ -46,6 +49,20 @@ export default function Guardian() {
       clearInterval(interval)
     }
   }, [user])
+
+  const handleSendReport = async () => {
+    setSending(true)
+    try {
+      await sendGuardianReport(user.id)
+      setReportSent(true)
+      clearTimeout(sentTimer.current)
+      sentTimer.current = setTimeout(() => setReportSent(false), 4000)
+    } catch {
+      // error handled silently — backend will log
+    } finally {
+      setSending(false)
+    }
+  }
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-[var(--turtle-text-muted)]">Loading dashboard...</p></div>
   if (!data) return <div>No dashboard data</div>
@@ -93,6 +110,22 @@ export default function Guardian() {
           ))}
         </div>
 
+        {/* Send report button */}
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={handleSendReport}
+            disabled={sending}
+            className="px-6 py-3 bg-[var(--turtle-green)] text-white text-base font-medium rounded-xl hover:bg-[var(--turtle-green-dark)] transition-colors disabled:opacity-50"
+          >
+            {sending ? 'Sending...' : '📧 Send Report Now'}
+          </button>
+          {reportSent && (
+            <p className="text-[var(--turtle-green)] font-medium text-base">
+              Report sent to guardian!
+            </p>
+          )}
+        </div>
+
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white border border-[var(--turtle-border)] rounded-xl p-4">
@@ -119,14 +152,15 @@ export default function Guardian() {
             <h3 className="font-semibold text-[var(--turtle-text)] text-base mb-4">Group Participation</h3>
             <p className="text-sm text-[var(--turtle-text-muted)] mb-3">Time spent in each group (%)</p>
             {data.group_participation.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={data.group_participation} dataKey="percentage" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percentage }) => `${name} ${percentage}%`}>
+                  <Pie data={data.group_participation} dataKey="percentage" nameKey="name" cx="50%" cy="45%" outerRadius={75} label={({ percentage }) => `${percentage}%`} labelLine={false}>
                     {data.group_participation.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value, name) => [`${value}%`, name]} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 8 }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (

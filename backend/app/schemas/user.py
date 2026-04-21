@@ -8,6 +8,7 @@ class ProfileOut(BaseModel):
     personality_scores: dict = {}
     guardian_enabled: bool = False
     onboarding_complete: bool = False
+    guardian_email: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -29,3 +30,7 @@ class ProfileUpdate(BaseModel):
     guardian_enabled: Optional[bool] = None
     onboarding_complete: Optional[bool] = None
     name: Optional[str] = None
+
+
+class GuardianEmailUpdate(BaseModel):
+    guardian_email: EmailStr
