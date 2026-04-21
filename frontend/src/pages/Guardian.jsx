@@ -119,14 +119,15 @@ export default function Guardian() {
             <h3 className="font-semibold text-[var(--turtle-text)] text-base mb-4">Group Participation</h3>
             <p className="text-sm text-[var(--turtle-text-muted)] mb-3">Time spent in each group (%)</p>
             {data.group_participation.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={data.group_participation} dataKey="percentage" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percentage }) => `${name} ${percentage}%`}>
+                  <Pie data={data.group_participation} dataKey="percentage" nameKey="name" cx="50%" cy="45%" outerRadius={75} label={({ percentage }) => `${percentage}%`} labelLine={false}>
                     {data.group_participation.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value, name) => [`${value}%`, name]} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 13, paddingTop: 8 }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (

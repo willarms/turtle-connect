@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup } from '../services/api'
+import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup, logCall } from '../services/api'
+
+const DURATION_OPTIONS = [
+  { label: 'About 15 minutes', minutes: 15 },
+  { label: 'About 30 minutes', minutes: 30 },
+  { label: 'About 45 minutes', minutes: 45 },
+  { label: 'An hour or more', minutes: null },
+]
+
+function formatMinutes(mins) {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  if (m === 0) return h === 1 ? '1 hour' : `${h} hours`
+  return h > 0 ? `${h} hr ${m} min` : `${m} min`
+}
 
 export default function GroupDetail() {
   const { id } = useParams()
@@ -8,13 +22,17 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true)
   const [meetError, setMeetError] = useState('')
   const [meetCreating, setMeetCreating] = useState(false)
+  const [showCallPrompt, setShowCallPrompt] = useState(false)
+  const [showHourPicker, setShowHourPicker] = useState(false)
+  const [customMinutes, setCustomMinutes] = useState(60)
+  const [callLogged, setCallLogged] = useState(false)
 
   useEffect(() => {
     getGroup(id)
       .then(async res => {
         setGroup(res.data)
         const pending = sessionStorage.getItem('pending_meet_group')
-        if (pending === id && !res.data.google_meet_url) {
+        if (pending === id) {
           sessionStorage.removeItem('pending_meet_group')
           setMeetCreating(true)
           try {
@@ -35,10 +53,55 @@ export default function GroupDetail() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Show the call prompt when the user comes back from the Meet tab
+  useEffect(() => {
+    const handleFocus = () => {
+      const callGroupId = sessionStorage.getItem('call_group_id')
+      if (callGroupId === id) {
+        setShowCallPrompt(true)
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [id])
+
   const handleJoin = async () => {
     await joinGroup(id)
     const res = await getGroup(id)
     setGroup(res.data)
+  }
+
+  const handleJoinMeet = () => {
+    sessionStorage.setItem('call_group_id', id)
+    window.open(group.google_meet_url, '_blank')
+  }
+
+  const handleLogCall = async (minutes) => {
+    sessionStorage.removeItem('call_group_id')
+    setShowCallPrompt(false)
+    setShowHourPicker(false)
+    try {
+      await logCall(id, minutes)
+      setCallLogged(true)
+      setTimeout(() => setCallLogged(false), 4000)
+    } catch {
+      // fail silently — not critical
+    }
+  }
+
+  const handleDurationChoice = (minutes) => {
+    if (minutes === null) {
+      setCustomMinutes(60)
+      setShowHourPicker(true)
+    } else {
+      handleLogCall(minutes)
+    }
+  }
+
+  const handleSkipLog = () => {
+    sessionStorage.removeItem('call_group_id')
+    setShowCallPrompt(false)
+    setShowHourPicker(false)
   }
 
   const handleCreateMeetLink = async () => {
@@ -77,6 +140,74 @@ export default function GroupDetail() {
 
   return (
     <div className="min-h-screen bg-[var(--turtle-bg)] py-8 px-6">
+
+      {/* Call duration prompt overlay */}
+      {showCallPrompt && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-xl text-center">
+            {!showHourPicker ? (
+              <>
+                <div className="text-5xl mb-4">👋</div>
+                <h2 className="text-2xl font-bold text-[var(--turtle-text)] mb-2">Welcome back!</h2>
+                <p className="text-lg text-[var(--turtle-text-muted)] mb-6">How long were you on the call?</p>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {DURATION_OPTIONS.map(({ label, minutes }) => (
+                    <button
+                      key={label}
+                      onClick={() => handleDurationChoice(minutes)}
+                      className="py-5 px-3 bg-[var(--turtle-green-light)] border-2 border-[var(--turtle-green)] text-[var(--turtle-green)] text-base font-semibold rounded-xl hover:bg-[var(--turtle-green)] hover:text-white transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={handleSkipLog}
+                  className="w-full py-3 text-[var(--turtle-text-muted)] text-base hover:text-[var(--turtle-text)] transition-colors"
+                >
+                  I didn't end up joining
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-5xl mb-4">⏱️</div>
+                <h2 className="text-2xl font-bold text-[var(--turtle-text)] mb-2">How long?</h2>
+                <p className="text-lg text-[var(--turtle-text-muted)] mb-6">Use the buttons to set the time</p>
+                <div className="flex items-center justify-center gap-6 mb-8">
+                  <button
+                    onClick={() => setCustomMinutes(m => Math.max(60, m - 15))}
+                    className="w-14 h-14 rounded-full bg-[var(--turtle-green-light)] border-2 border-[var(--turtle-green)] text-[var(--turtle-green)] text-3xl font-bold flex items-center justify-center hover:bg-[var(--turtle-green)] hover:text-white transition-colors"
+                  >
+                    −
+                  </button>
+                  <span className="text-2xl font-bold text-[var(--turtle-text)] min-w-[7rem] text-center">
+                    {formatMinutes(customMinutes)}
+                  </span>
+                  <button
+                    onClick={() => setCustomMinutes(m => m + 15)}
+                    className="w-14 h-14 rounded-full bg-[var(--turtle-green-light)] border-2 border-[var(--turtle-green)] text-[var(--turtle-green)] text-3xl font-bold flex items-center justify-center hover:bg-[var(--turtle-green)] hover:text-white transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+                <button
+                  onClick={() => handleLogCall(customMinutes)}
+                  className="w-full py-4 bg-[var(--turtle-green)] text-white text-lg font-semibold rounded-xl hover:bg-[var(--turtle-green-dark)] transition-colors mb-3"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setShowHourPicker(false)}
+                  className="w-full py-3 text-[var(--turtle-text-muted)] text-base hover:text-[var(--turtle-text)] transition-colors"
+                >
+                  ← Go back
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto">
         <Link to="/groups" className="text-base text-[var(--turtle-text-muted)] hover:text-[var(--turtle-green)] mb-4 inline-block">
           ← Back to Groups
@@ -122,15 +253,19 @@ export default function GroupDetail() {
                 <p className="text-[var(--turtle-text-muted)] text-sm text-center">Creating Meet link...</p>
               )}
 
+              {callLogged && (
+                <p className="text-center text-[var(--turtle-green)] font-medium text-base bg-[var(--turtle-green-light)] rounded-lg py-3">
+                  Great — your call has been logged!
+                </p>
+              )}
+
               {group.google_meet_url ? (
-                <a
-                  href={group.google_meet_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={handleJoinMeet}
                   className="flex items-center justify-center gap-2 w-full py-4 bg-[var(--turtle-green)] text-white text-lg rounded-lg font-medium hover:bg-[var(--turtle-green-dark)] transition-colors"
                 >
                   📹 Join Google Meet
-                </a>
+                </button>
               ) : (
                 <button
                   onClick={handleCreateMeetLink}

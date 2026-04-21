@@ -1,15 +1,21 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.activity import Activity
 from app.models.group import Group, GroupMembership
 from app.models.user import User
 from app.schemas.group import GroupCreate, GroupOut
 from app.services.matching import get_suggested_groups
 from app.services.google_oauth import create_meet_link, refresh_access_token
+
+
+class LogCallRequest(BaseModel):
+    duration_minutes: int
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
@@ -132,10 +138,6 @@ async def create_group_meet_link(
     if not membership:
         raise HTTPException(status_code=403, detail="You must be a member to create a Meet link")
 
-    # Already has a link — just return it
-    if group.google_meet_url:
-        return _serialize_group(group, current_user.id)
-
     # No calendar refresh token — need OAuth
     if not current_user.google_refresh_token:
         return {"needs_calendar_auth": True}
@@ -145,6 +147,22 @@ async def create_group_meet_link(
     except Exception as exc:
         print(f"[meet-link] refresh_access_token failed: {exc}")
         return {"needs_calendar_auth": True}
+
+    # Link already exists — verify Meet scope and update host, then return
+    if group.google_meet_url:
+        import httpx as _httpx
+        space_code = group.google_meet_url.rstrip("/").split("/")[-1]
+        async with _httpx.AsyncClient() as client:
+            test = await client.get(
+                "https://meet.googleapis.com/v2/conferenceRecords",
+                params={"filter": f'space.name="spaces/{space_code}"', "pageSize": "1"},
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        if test.status_code == 403:
+            return {"needs_calendar_auth": True}
+        group.meet_host_user_id = current_user.id
+        db.commit()
+        return _serialize_group(group, current_user.id)
 
     try:
         result = await create_meet_link(access_token, group.name)
@@ -158,9 +176,31 @@ async def create_group_meet_link(
 
     group.google_meet_url = result["meet_url"]
     group.meet_event_id = result["event_id"]
+    group.meet_host_user_id = current_user.id
     db.commit()
     db.refresh(group)
     return _serialize_group(group, current_user.id)
+
+
+@router.post("/{group_id}/log-call")
+def log_call(
+    group_id: int,
+    body: LogCallRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    membership = db.query(GroupMembership).filter_by(user_id=current_user.id, group_id=group_id).first()
+    if not membership:
+        raise HTTPException(status_code=403, detail="You must be a member of this group")
+
+    db.add(Activity(
+        user_id=current_user.id,
+        group_id=group_id,
+        activity_type="call",
+        duration_minutes=body.duration_minutes,
+    ))
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/{group_id}/favorite", response_model=GroupOut)
