@@ -5,6 +5,9 @@ Instructions to run:
 # Terminal 1 — backend
 cd backend && venv/bin/uvicorn app.main:app --reload
 
+To initlaize database:
+python seed.py
+
 The backend was built using FastAPI with SQLAlchemy as the ORM and SQLite as the local development database. The database configuration was defined in database.py, and the application was set to use a local file-based database (turtle.db) via a configurable database_url. If 
 
 'alembic upgrade head' in backend folder to create all tables defined in the migrations
