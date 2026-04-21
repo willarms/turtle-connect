@@ -14,6 +14,7 @@ class Activity(Base):
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
     activity_type = Column(String, nullable=False)  # "call" or "message"
     duration_minutes = Column(Integer, default=0)
+    meet_conference_id = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="activities")

@@ -56,4 +56,7 @@ export const googleCallback = (code, codeVerifier) =>
 export const createMeetLink = (groupId) =>
   api.post(`/api/groups/${groupId}/meet-link`)
 
+export const logCall = (groupId, durationMinutes) =>
+  api.post(`/api/groups/${groupId}/log-call`, { duration_minutes: durationMinutes })
+
 export default api

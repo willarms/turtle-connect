@@ -138,10 +138,6 @@ async def create_group_meet_link(
     if not membership:
         raise HTTPException(status_code=403, detail="You must be a member to create a Meet link")
 
-    # Already has a link — just return it
-    if group.google_meet_url:
-        return _serialize_group(group, current_user.id)
-
     # No calendar refresh token — need OAuth
     if not current_user.google_refresh_token:
         return {"needs_calendar_auth": True}
@@ -150,6 +146,22 @@ async def create_group_meet_link(
         access_token = await refresh_access_token(current_user.google_refresh_token)
     except Exception:
         return {"needs_calendar_auth": True}
+
+    # Link already exists — verify Meet scope and update host, then return
+    if group.google_meet_url:
+        import httpx as _httpx
+        space_code = group.google_meet_url.rstrip("/").split("/")[-1]
+        async with _httpx.AsyncClient() as client:
+            test = await client.get(
+                "https://meet.googleapis.com/v2/conferenceRecords",
+                params={"filter": f'space.name="spaces/{space_code}"', "pageSize": "1"},
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        if test.status_code == 403:
+            return {"needs_calendar_auth": True}
+        group.meet_host_user_id = current_user.id
+        db.commit()
+        return _serialize_group(group, current_user.id)
 
     try:
         result = await create_meet_link(access_token, group.name)
@@ -161,6 +173,7 @@ async def create_group_meet_link(
 
     group.google_meet_url = result["meet_url"]
     group.meet_event_id = result["event_id"]
+    group.meet_host_user_id = current_user.id
     db.commit()
     db.refresh(group)
     return _serialize_group(group, current_user.id)
@@ -176,6 +189,7 @@ def log_call(
     membership = db.query(GroupMembership).filter_by(user_id=current_user.id, group_id=group_id).first()
     if not membership:
         raise HTTPException(status_code=403, detail="You must be a member of this group")
+
     db.add(Activity(
         user_id=current_user.id,
         group_id=group_id,

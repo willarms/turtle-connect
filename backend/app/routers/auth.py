@@ -61,7 +61,10 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 LOGIN_SCOPES = ["openid", "email", "profile"]
-CALENDAR_SCOPES = LOGIN_SCOPES + ["https://www.googleapis.com/auth/calendar.events"]
+CALENDAR_SCOPES = LOGIN_SCOPES + [
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/meetings.space.readonly",
+]
 
 
 @router.get("/google/authorize-url-v2", response_model=GoogleAuthorizeResponse)
