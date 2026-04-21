@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:5173/auth/callback"
 
+    resend_api_key: str = ""
+    email_from: str = "Turtle Connect <onboarding@resend.dev>"
+
     class Config:
         env_file = ".env"
 

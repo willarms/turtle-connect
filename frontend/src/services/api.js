@@ -23,6 +23,10 @@ export const login = (email, password) =>
 // Users
 export const getMe = () => api.get('/api/users/me')
 export const updateProfile = (data) => api.put('/api/users/me/profile', data)
+export const logCall = (groupId, durationMinutes) =>
+  api.post(`/api/groups/${groupId}/log-call`, { duration_minutes: durationMinutes })
+export const updateGuardianEmail = (email) => api.put('/api/users/me/guardian-email', { guardian_email: email })
+export const sendGuardianReport = (seniorId) => api.post(`/api/guardian/${seniorId}/send-report`)
 
 // Groups
 export const getAllGroups = () => api.get('/api/groups')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { updateProfile } from '../services/api'
+import { updateGuardianEmail, updateProfile } from '../services/api'
 
 const INTERESTS = [
   { label: 'Gardening', emoji: '🌱' },
@@ -28,6 +28,7 @@ export default function Profile() {
   const [name, setName] = useState(user?.name || '')
   const [selected, setSelected] = useState(user?.profile?.interests || [])
   const [guardianEnabled, setGuardianEnabled] = useState(user?.profile?.guardian_enabled || false)
+  const [guardianEmail, setGuardianEmail] = useState(user?.profile?.guardian_email || '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -41,6 +42,9 @@ export default function Profile() {
     setSaving(true)
     try {
       await updateProfile({ name, interests: selected, guardian_enabled: guardianEnabled })
+      if (guardianEnabled && guardianEmail.trim()) {
+        await updateGuardianEmail(guardianEmail.trim())
+      }
       await refreshUser()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -100,6 +104,24 @@ export default function Profile() {
             <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow ${guardianEnabled ? 'right-0.5' : 'left-0.5'}`} />
           </button>
         </div>
+
+        {guardianEnabled && (
+          <div className="mb-6">
+            <label className="block font-medium text-[var(--turtle-text)] mb-2 text-base">
+              Guardian's Email Address
+            </label>
+            <p className="text-sm text-[var(--turtle-text-muted)] mb-2">
+              Weekly activity reports will be sent to this address
+            </p>
+            <input
+              type="email"
+              value={guardianEmail}
+              onChange={e => setGuardianEmail(e.target.value)}
+              placeholder="guardian@example.com"
+              className="w-full px-4 py-4 border border-[var(--turtle-border)] rounded-lg text-base focus:outline-none focus:border-[var(--turtle-green)] bg-[var(--turtle-bg)]"
+            />
+          </div>
+        )}
 
         <div className="flex gap-3">
           <button

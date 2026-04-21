@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.activity import Activity
-from app.models.group import Group, GroupMembership
-from app.models.user import User
+from app.models.group import GroupMembership
+from app.models.user import GuardianLink, User
 from app.services.auth import get_user_by_id
-from app.services.google_oauth import fetch_meet_activities, refresh_access_token
+from app.services.dashboard import build_dashboard_data
+from app.services.email import build_report_html, send_email
 
 router = APIRouter(prefix="/api/guardian", tags=["guardian"])
 
@@ -160,3 +161,30 @@ async def get_dashboard(
         "recent_activity": recent_activity,
         "alerts": [],
     }
+
+
+@router.post("/{senior_id}/send-report")
+async def send_report(
+    senior_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    senior = get_user_by_id(db, senior_id)
+    if not senior:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not senior.profile or not senior.profile.guardian_enabled:
+        raise HTTPException(status_code=400, detail="Guardian monitoring is not enabled for this user")
+
+    link = db.query(GuardianLink).filter_by(senior_id=senior_id).first()
+    if not link:
+        raise HTTPException(status_code=400, detail="No guardian email address set. Please add one in Profile settings.")
+
+    data = build_dashboard_data(db, senior)
+    html = build_report_html(data)
+    await send_email(
+        to=link.guardian_email,
+        subject=f"Activity Report — {senior.name}",
+        html=html,
+    )
+    return {"ok": True, "sent_to": link.guardian_email}

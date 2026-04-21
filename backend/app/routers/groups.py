@@ -144,8 +144,7 @@ async def create_group_meet_link(
 
     try:
         access_token = await refresh_access_token(current_user.google_refresh_token)
-    except Exception as exc:
-        print(f"[meet-link] refresh_access_token failed: {exc}")
+    except Exception:
         return {"needs_calendar_auth": True}
 
     # Link already exists — verify Meet scope and update host, then return
@@ -168,9 +167,7 @@ async def create_group_meet_link(
         result = await create_meet_link(access_token, group.name)
     except Exception as exc:
         import httpx as _httpx
-        print(f"[meet-link] create_meet_link failed: {exc}")
         if isinstance(exc, _httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
-            print(f"[meet-link] Google response body: {exc.response.text}")
             return {"needs_calendar_auth": True}
         raise HTTPException(status_code=502, detail=f"Google Calendar API error: {exc}")
 
