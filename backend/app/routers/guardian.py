@@ -7,15 +7,69 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.activity import Activity
-from app.models.group import GroupMembership
+from app.models.group import Group, GroupMembership
 from app.models.user import User
 from app.services.auth import get_user_by_id
+from app.services.google_oauth import fetch_meet_activities, refresh_access_token
 
 router = APIRouter(prefix="/api/guardian", tags=["guardian"])
 
 
+async def _sync_meet_activities(senior: User, db: Session, since: datetime) -> None:
+    """Pull completed Google Meet sessions for the senior and write Activity rows."""
+    memberships = db.query(GroupMembership).filter_by(user_id=senior.id).all()
+    since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    for m in memberships:
+        group: Group = m.group
+        if not group.google_meet_url or not group.meet_host_user_id:
+            continue
+
+        print(f"[meet-sync] checking group {group.id} ({group.name}), meet_url={group.google_meet_url}, host_id={group.meet_host_user_id}")
+        host = db.query(User).filter_by(id=group.meet_host_user_id).first() if group.meet_host_user_id else None
+        if not host or not host.google_refresh_token:
+            # Fall back to any group member with a refresh token
+            for membership in group.memberships:
+                candidate = membership.user
+                if candidate.google_refresh_token:
+                    host = candidate
+                    break
+        if not host or not host.google_refresh_token:
+            continue
+
+        try:
+            access_token = await refresh_access_token(host.google_refresh_token)
+        except Exception:
+            continue
+
+        records = await fetch_meet_activities(access_token, group.google_meet_url, since_iso)
+
+        for rec in records:
+            # Skip if already synced
+            existing = db.query(Activity).filter_by(meet_conference_id=rec["conference_id"]).first()
+            if existing:
+                continue
+
+            # Only record if the senior was a participant
+            senior_google_id = senior.google_id
+            if senior_google_id and senior_google_id not in rec["participant_google_ids"]:
+                continue
+
+            ended_at = datetime.strptime(rec["ended_at"][:19], "%Y-%m-%dT%H:%M:%S")
+            db.add(Activity(
+                user_id=senior.id,
+                group_id=group.id,
+                activity_type="call",
+                duration_minutes=rec["duration_minutes"],
+                meet_conference_id=rec["conference_id"],
+                created_at=ended_at,
+            ))
+
+    db.commit()
+
+
 @router.get("/{senior_id}/dashboard")
-def get_dashboard(
+async def get_dashboard(
     senior_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -26,6 +80,12 @@ def get_dashboard(
 
     now = datetime.utcnow()
     week_ago = now - timedelta(days=7)
+
+    # Silently sync any new Google Meet sessions before building the dashboard
+    try:
+        await _sync_meet_activities(senior, db, week_ago)
+    except Exception as exc:
+        print(f"[guardian] meet sync failed: {exc}")
 
     activities = (
         db.query(Activity)
