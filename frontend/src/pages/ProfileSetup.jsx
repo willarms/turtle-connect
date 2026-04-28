@@ -110,25 +110,16 @@ export default function ProfileSetup() {
               </p>
             </div>
             <div className="ml-4 flex-shrink-0 w-6 h-6 mt-1">
+            <label className="flex items-center cursor-pointer">
               <input
-                type="radio"
+                type="checkbox"
                 checked={guardianEnabled}
-                onChange={() => setGuardianEnabled(!guardianEnabled)}
-                className="w-6 h-6 accent-[var(--turtle-green)]"
+                onChange={() => setGuardianEnabled(prev => !prev)}
+                className="w-5 h-5 accent-[var(--turtle-green)]"
               />
+            </label>
             </div>
           </div>
-          {guardianEnabled && (
-            <div className="mt-3 pt-3 border-t border-[var(--turtle-border)] flex items-center justify-between">
-              <div>
-                <p className="text-base font-medium text-[var(--turtle-text)]">Enable Guardian Access</p>
-                <p className="text-sm text-[var(--turtle-text-muted)]">Guardians can view activity stats but not message content</p>
-              </div>
-              <div className="w-10 h-6 bg-[var(--turtle-green)] rounded-full relative cursor-pointer">
-                <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 shadow" />
-              </div>
-            </div>
-          )}
         </div>
 
         {error && <p className="text-red-500 text-base text-center mb-4">{error}</p>}
@@ -138,7 +129,7 @@ export default function ProfileSetup() {
           disabled={saving}
           className="w-full py-4 bg-[var(--turtle-green)] text-white text-lg rounded-lg font-medium hover:bg-[var(--turtle-green-dark)] transition-colors disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Find My Groups'}
+          {saving ? 'Saving...' : 'Personality Assessment'}
         </button>
       </div>
     </div>

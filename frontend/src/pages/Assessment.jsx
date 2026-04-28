@@ -80,17 +80,33 @@ export default function Assessment() {
   const [current, setCurrent] = useState(0)
   const [answers, setAnswers] = useState({})
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const { refreshUser } = useAuth()
   const navigate = useNavigate()
 
   const selectAnswer = (option) => {
     setAnswers(prev => ({ ...prev, [current]: option }))
+    setError('') // clears error once user fixes it
   }
 
   const next = async () => {
+    // ❗ Validate current question
+    if (!answers[current]) {
+      setError('Please select an option before continuing.')
+      return
+    }
+  
+    setError('')
+  
     if (current < QUESTIONS.length - 1) {
       setCurrent(c => c + 1)
     } else {
+      // ❗ Final safety check (in case something breaks)
+      if (Object.keys(answers).length < QUESTIONS.length) {
+        setError('Please answer all questions before finishing.')
+        return
+      }
+  
       setSaving(true)
       try {
         await updateProfile({
@@ -101,6 +117,7 @@ export default function Assessment() {
         navigate('/groups')
       } catch {
         setSaving(false)
+        setError('Failed to save your results. Please try again.')
       }
     }
   }
@@ -137,8 +154,10 @@ export default function Assessment() {
         </p>
 
         <h2 className="text-xl font-semibold text-[var(--turtle-text)] mb-4">{q.question}</h2>
-
-        <div className="space-y-2 mb-8">
+        {error && (
+          <p className="text-red-500 text-sm mb-4">{error}</p>
+        )}
+        <div className={`space-y-2 mb-4 ${error ? 'border border-red-300 p-2 rounded-lg' : ''}`}>
           {q.options.map(option => (
             <button
               key={option}
@@ -167,7 +186,7 @@ export default function Assessment() {
             disabled={!selected || saving}
             className="flex items-center gap-1 px-6 py-4 bg-[var(--turtle-green)] text-white text-base rounded-lg hover:bg-[var(--turtle-green-dark)] disabled:opacity-50 transition-colors"
           >
-            {saving ? 'Saving...' : current === QUESTIONS.length - 1 ? 'Finish' : 'Next →'}
+            {saving ? 'Saving...' : current === QUESTIONS.length - 1 ? 'Finish, Find Groups' : 'Next →'}
           </button>
         </div>
       </div>
