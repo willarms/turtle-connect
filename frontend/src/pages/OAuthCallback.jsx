@@ -46,8 +46,12 @@ export default function OAuthCallback() {
         localStorage.setItem('token', res.data.access_token)
         // Refresh AuthContext so ProtectedRoute sees the user before we navigate
         await refreshUser()
-        const destination = postOAuthGroup ? `/groups/${postOAuthGroup}` : '/groups'
-        navigate(destination, { replace: true })
+        if (res.data.is_new_user) {
+          navigate('/setup', { replace: true })
+        } else {
+          const destination = postOAuthGroup ? `/groups/${postOAuthGroup}` : '/groups'
+          navigate(destination, { replace: true })
+        }
       })
       .catch(() => {
         navigate('/login?error=google_failed')
