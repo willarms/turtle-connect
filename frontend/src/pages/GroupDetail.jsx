@@ -95,7 +95,7 @@ export default function GroupDetail() {
     } catch {
       // fail silently — not critical
     }
-    // Reset flags and show post-meeting safety report
+    // Reset report flags and show post-meeting safety report
     setReportFlags({
       flag_password_request: false,
       flag_offensive_language: false,
