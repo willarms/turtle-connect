@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = "Turtle Connect <onboarding@resend.dev>"
 
+    groq_api_key: str = ""
+
     class Config:
         env_file = ".env"
 
