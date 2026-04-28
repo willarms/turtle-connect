@@ -8,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.activity import Activity
 from app.models.group import Group, GroupMembership
+from app.models.message import Message
 from app.models.report import MeetingReport
 from app.models.user import User
 from app.schemas.group import GroupCreate, GroupOut
@@ -42,6 +43,7 @@ def _serialize_group(group: Group, user_id: int) -> dict:
         "is_favorite": membership.is_favorite if membership else False,
         "is_member": membership is not None,
         "google_meet_url": group.google_meet_url,
+        "members": [{"id": m.user_id, "name": m.user.name} for m in group.memberships],
     }
 
 
@@ -322,3 +324,29 @@ async def report_group(
             pass
 
     return {"success": True}
+
+
+@router.get("/{group_id}/messages")
+def get_messages(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    msgs = (
+        db.query(Message)
+        .filter(Message.group_id == group_id)
+        .order_by(Message.created_at.asc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "id": m.id,
+            "group_id": m.group_id,
+            "sender_id": m.sender_id,
+            "sender_name": m.sender.name if m.sender else "Unknown",
+            "content": m.content,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in msgs
+    ]

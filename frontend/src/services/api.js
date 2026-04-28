@@ -57,6 +57,15 @@ export const googleCallback = (code, codeVerifier) =>
 export const createMeetLink = (groupId) =>
   api.post(`/api/groups/${groupId}/meet-link`)
 
+export const getMessages = (groupId) =>
+  api.get(`/api/groups/${groupId}/messages`)
+
+export const sendGroupReport = (groupId, data) =>
+  api.post(`/api/groups/${groupId}/report`, {
+    reason: data.reason,
+    details: data.details,
+  })
+
 export const submitMeetingReport = (groupId, data) =>
   api.post(`/api/groups/${groupId}/report`, data)
 
