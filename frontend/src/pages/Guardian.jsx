@@ -23,6 +23,8 @@ export default function Guardian() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [reportSent, setReportSent] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const sentTimer = useRef(null)
 
   useEffect(() => {
@@ -50,15 +52,19 @@ export default function Guardian() {
     }
   }, [user])
 
-  const handleSendReport = async () => {
+  const confirmSendReport = async () => {
+    setShowConfirm(false)
     setSending(true)
+  
     try {
       await sendGuardianReport(user.id)
-      setReportSent(true)
-      clearTimeout(sentTimer.current)
-      sentTimer.current = setTimeout(() => setReportSent(false), 4000)
+    setShowSuccess(true)
+
+    setTimeout(() => {
+      setShowSuccess(false)
+    }, 3000)
     } catch {
-      // error handled silently — backend will log
+      // silently fail
     } finally {
       setSending(false)
     }
@@ -112,12 +118,12 @@ export default function Guardian() {
 
         {/* Send report button */}
         <div className="mb-6 flex items-center gap-4">
-          <button
-            onClick={handleSendReport}
+        <button
+            onClick={() => setShowConfirm(true)}
             disabled={sending}
             className="px-6 py-3 bg-[var(--turtle-green)] text-white text-base font-medium rounded-xl hover:bg-[var(--turtle-green-dark)] transition-colors disabled:opacity-50"
           >
-            {sending ? 'Sending...' : '📧 Send Report Now'}
+            📧 Send Report Now
           </button>
           {reportSent && (
             <p className="text-[var(--turtle-green)] font-medium text-base">
@@ -198,6 +204,43 @@ export default function Guardian() {
           )}
         </div>
       </div>
+      {showConfirm && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+          <h2 className="text-lg font-semibold text-[var(--turtle-text)] mb-2">
+            Send Report?
+          </h2>
+
+          <p className="text-sm text-[var(--turtle-text-muted)] mb-6">
+            This will email the latest activity report to the guardian.
+          </p>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={confirmSendReport}
+              className="px-4 py-2 text-sm rounded-lg bg-[var(--turtle-green)] text-white hover:bg-[var(--turtle-green-dark)]"
+            >
+              Yes, Send
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    {showSuccess && (
+      <div className="fixed bottom-6 right-6 bg-white border border-[var(--turtle-border)] shadow-lg rounded-xl px-4 py-3 flex items-center gap-2 z-50">
+        <span className="text-green-600 text-lg">✔</span>
+        <p className="text-sm font-medium text-[var(--turtle-text)]">
+          Report sent successfully
+        </p>
+      </div>
+    )}
     </div>
   )
 }
