@@ -5,8 +5,10 @@ Instructions to run:
 # Terminal 1 — backend
 cd backend && venv/bin/uvicorn app.main:app --reload
 
-To initialize database:
-python seed.py
+python3 -m venv venv   ← create new virtual enviornmetn 
+source venv/bin/activate ← activate it 
+pip install -r requirements.txt ← reinstall dependencies 
+python seed.py <-- initialize database
 
 The backend was built using FastAPI with SQLAlchemy as the ORM and SQLite as the local development database. The database configuration was defined in database.py, and the application was set to use a local file-based database (turtle.db) via a configurable database_url. If 
 
