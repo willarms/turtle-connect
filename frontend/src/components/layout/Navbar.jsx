@@ -38,13 +38,15 @@ export default function Navbar() {
               <span className="text-2xl">👤</span>
               <span className="text-sm font-medium text-[var(--turtle-text)] mt-0.5">Profile</span>
             </Link>
-            <Link
-              to="/guardian"
-              className="flex flex-col items-center px-4 py-2 rounded-xl border-2 border-transparent hover:border-[var(--turtle-green)] hover:bg-[var(--turtle-green-light)] transition-colors"
-            >
-              <span className="text-2xl">🛡️</span>
-              <span className="text-sm font-medium text-[var(--turtle-text)] mt-0.5">Guardian</span>
-            </Link>
+            {user?.profile?.guardian_enabled && (
+              <Link
+                to="/guardian"
+                className="flex flex-col items-center px-4 py-2 rounded-xl border-2 border-transparent hover:border-[var(--turtle-green)] hover:bg-[var(--turtle-green-light)] transition-colors"
+              >
+                <span className="text-2xl">🛡️</span>
+                <span className="text-sm font-medium text-[var(--turtle-text)] mt-0.5">Guardian</span>
+              </Link>
+            )}
             <Link
               to="/help"
               className="flex flex-col items-center px-4 py-2 rounded-xl border-2 border-transparent hover:border-[var(--turtle-green)] hover:bg-[var(--turtle-green-light)] transition-colors"
