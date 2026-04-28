@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup, logCall, leaveGroup, submitMeetingReport } from '../services/api'
+import { createMeetLink, getGoogleAuthorizeUrl, getGroup, getMessages, joinGroup, logCall, leaveGroup, submitMeetingReport } from '../services/api'
+import socket from '../services/socket'
 
 const DURATION_OPTIONS = [
   { label: 'About 15 minutes', minutes: 15 },
@@ -34,6 +35,38 @@ export default function GroupDetail() {
     additional_notes: '',
   })
   const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [messages, setMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const messagesEndRef = useRef(null)
+
+  // Load message history and connect socket when group is a member
+  useEffect(() => {
+    if (!group?.is_member) return
+    getMessages(id).then(res => setMessages(res.data))
+
+    socket.connect()
+    socket.emit('join_group', { group_id: id })
+    socket.on('new_message', msg => {
+      if (String(msg.group_id) === String(id)) {
+        setMessages(prev => [...prev, msg])
+      }
+    })
+    return () => {
+      socket.off('new_message')
+      socket.disconnect()
+    }
+  }, [id, group?.is_member])
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return
+    socket.emit('send_message', { group_id: id, content: chatInput.trim() })
+    setChatInput('')
+  }
 
   useEffect(() => {
     getGroup(id)
@@ -401,13 +434,60 @@ export default function GroupDetail() {
 
           <p className="text-[var(--turtle-text-muted)] text-base mb-4 leading-relaxed">{group.description}</p>
 
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap gap-2 mb-4">
             {group.topics.map(t => (
               <span key={t} className="px-3 py-1.5 bg-[var(--turtle-green-light)] text-[var(--turtle-green)] text-sm rounded-full">
                 {t}
               </span>
             ))}
           </div>
+
+          {group.members?.length > 0 && (
+            <div className="mb-6">
+              <p className="text-sm font-medium text-[var(--turtle-text-muted)] mb-2">Members</p>
+              <div className="flex flex-wrap gap-2">
+                {group.members.map(m => (
+                  <span key={m.id} className="px-3 py-1.5 bg-gray-100 text-[var(--turtle-text)] text-sm rounded-full">
+                    {m.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {group.is_member && (
+            <div className="border-t border-[var(--turtle-border)] pt-4 mt-4">
+              <h2 className="text-lg font-semibold text-[var(--turtle-text)] mb-3">Group Chat</h2>
+              <div className="h-64 overflow-y-auto bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+                {messages.length === 0
+                  ? <p className="text-[var(--turtle-text-muted)] text-sm text-center mt-8">No messages yet. Say hello!</p>
+                  : messages.map(m => (
+                    <div key={m.id} className="text-base">
+                      <span className="font-semibold text-[var(--turtle-green)]">{m.sender_name}: </span>
+                      <span className="text-[var(--turtle-text)]">{m.content}</span>
+                    </div>
+                  ))
+                }
+                <div ref={messagesEndRef} />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Type a message…"
+                  className="flex-1 border-2 border-[var(--turtle-border)] rounded-xl px-4 py-3 text-base focus:outline-none focus:border-[var(--turtle-green)]"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  className="px-5 py-3 bg-[var(--turtle-green)] text-white text-base font-semibold rounded-xl hover:bg-[var(--turtle-green-dark)] transition-colors"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          )}
 
           {group.is_member ? (
             <div className="border-t border-[var(--turtle-border)] pt-4 space-y-3">
