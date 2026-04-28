@@ -57,20 +57,45 @@ export default function Groups() {
   const [tab, setTab] = useState('all')
   const [loading, setLoading] = useState(true)
   const [latestMessages, setLatestMessages] = useState({}) // { groupId: message }
+  const [upcomingMeetings, setUpcomingMeetings] = useState([])
 
   const load = async () => {
     try {
-      const [myRes, sugRes] = await Promise.all([getMyGroups(), getSuggestedGroups()])
+      const [myRes, sugRes] = await Promise.all([
+        getMyGroups(),
+        getSuggestedGroups()
+      ])
+  
       setMyGroups(myRes.data)
       setSuggested(sugRes.data)
-
-      // Load latest message for each joined group
+  
+      // NEW: upcoming meetings derived from API
+      const meetings = myRes.data
+        .filter(g => g.next_meeting_at)
+        .map(g => ({
+          id: g.id,
+          groupName: g.name,
+          title: 'Upcoming Meeting',
+          time: new Date(g.next_meeting_at)
+        }))
+        .sort((a, b) => a.time - b.time)
+        .slice(0, 5)
+        .map(m => ({
+          ...m,
+          time: m.time.toLocaleString()
+        }))
+  
+      setUpcomingMeetings(meetings)
+  
+      // existing messages logic
       const latest = {}
-      await Promise.all(myRes.data.map(async g => {
-        const res = await getMessages(g.id)
-        const msgs = res.data
-        if (msgs.length > 0) latest[g.id] = msgs[msgs.length - 1]
-      }))
+      await Promise.all(
+        myRes.data.map(async g => {
+          const res = await getMessages(g.id)
+          const msgs = res.data
+          if (msgs.length > 0) latest[g.id] = msgs[msgs.length - 1]
+        })
+      )
       setLatestMessages(latest)
     } finally {
       setLoading(false)
@@ -114,25 +139,71 @@ export default function Groups() {
   return (
     <div className="min-h-screen bg-[var(--turtle-bg)] py-8 px-6">
       <div className="max-w-6xl mx-auto flex gap-6">
-        {/* Recent messages sidebar */}
-        <div className="hidden md:block w-64 shrink-0">
-          <div className="bg-white rounded-2xl border border-[var(--turtle-border)] p-4 sticky top-8">
-            <h2 className="text-base font-semibold text-[var(--turtle-text)] mb-3">Recent Messages</h2>
-            {myGroups.length === 0
-              ? <p className="text-sm text-[var(--turtle-text-muted)]">Join a group to see messages here.</p>
-              : myGroups.map(g => (
-                <Link key={g.id} to={`/groups/${g.id}`} className="block mb-3 hover:opacity-80 transition-opacity">
-                  <p className="text-sm font-medium text-[var(--turtle-green)] truncate">{g.name}</p>
-                  {latestMessages[g.id]
-                    ? <p className="text-sm text-[var(--turtle-text-muted)] truncate">
-                        <span className="font-medium">{latestMessages[g.id].sender_name}:</span> {latestMessages[g.id].content}
-                      </p>
-                    : <p className="text-sm text-[var(--turtle-text-muted)] italic">No messages yet</p>
-                  }
-                </Link>
-              ))
-            }
-          </div>
+        {/* Sidebar */}
+        <div className="hidden md:block w-64 shrink-0 space-y-4">
+
+        {/* Upcoming Meetings */}
+        <div className="bg-white rounded-2xl border border-[var(--turtle-border)] p-4">
+          <h2 className="text-base font-semibold text-[var(--turtle-text)] mb-3">
+            Upcoming Meetings
+          </h2>
+
+          {upcomingMeetings.length === 0 ? (
+            <p className="text-sm text-[var(--turtle-text-muted)]">
+              No upcoming meetings.
+            </p>
+          ) : (
+            upcomingMeetings.map(m => (
+              <div key={m.id} className="mb-3 last:mb-0">
+                <p className="text-sm font-medium text-[var(--turtle-text)]">
+                  {m.title}
+                </p>
+                <p className="text-xs text-[var(--turtle-text-muted)]">
+                  {m.groupName} • {m.time}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Recent Messages */}
+        <div className="bg-white rounded-2xl border border-[var(--turtle-border)] p-4 sticky top-8">
+          <h2 className="text-base font-semibold text-[var(--turtle-text)] mb-3">
+            Recent Messages
+          </h2>
+
+          {myGroups.length === 0 ? (
+            <p className="text-sm text-[var(--turtle-text-muted)]">
+              Join a group to see messages here.
+            </p>
+          ) : (
+            myGroups.map(g => (
+              <Link
+                key={g.id}
+                to={`/groups/${g.id}`}
+                className="block mb-3 hover:opacity-80 transition-opacity"
+              >
+                <p className="text-sm font-medium text-[var(--turtle-green)] truncate">
+                  {g.name}
+                </p>
+
+                {latestMessages[g.id] ? (
+                  <p className="text-sm text-[var(--turtle-text-muted)] truncate">
+                    <span className="font-medium">
+                      {latestMessages[g.id].sender_name}:
+                    </span>{' '}
+                    {latestMessages[g.id].content}
+                  </p>
+                ) : (
+                  <p className="text-sm text-[var(--turtle-text-muted)] italic">
+                    No messages yet
+                  </p>
+                )}
+              </Link>
+            ))
+          )}
+        </div>
+
         </div>
 
         <div className="flex-1 min-w-0">
