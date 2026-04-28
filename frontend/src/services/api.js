@@ -63,4 +63,7 @@ export const sendGroupReport = (groupId, data) =>
     details: data.details,
   })
 
+export const submitMeetingReport = (groupId, data) =>
+  api.post(`/api/groups/${groupId}/report`, data)
+
 export default api
