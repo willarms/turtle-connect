@@ -81,91 +81,165 @@ export default function Assessment() {
   const [answers, setAnswers] = useState({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showIntro, setShowIntro] = useState(true)
+
   const { refreshUser } = useAuth()
   const navigate = useNavigate()
 
   const selectAnswer = (option) => {
     setAnswers(prev => ({ ...prev, [current]: option }))
-    setError('') // clears error once user fixes it
+    setError('')
+  }
+
+  const exitToProfile = () => {
+    navigate('/profile')
+  }
+
+  const skipAssessment = () => {
+    navigate('/groups')
   }
 
   const next = async () => {
-    // ❗ Validate current question
     if (!answers[current]) {
       setError('Please select an option before continuing.')
       return
     }
-  
+
     setError('')
-  
+
     if (current < QUESTIONS.length - 1) {
       setCurrent(c => c + 1)
-    } else {
-      // ❗ Final safety check (in case something breaks)
-      if (Object.keys(answers).length < QUESTIONS.length) {
-        setError('Please answer all questions before finishing.')
-        return
-      }
-  
-      setSaving(true)
-      try {
-        await updateProfile({
-          personality_scores: answers,
-          onboarding_complete: true,
-        })
-        await refreshUser()
-        navigate('/groups')
-      } catch {
-        setSaving(false)
-        setError('Failed to save your results. Please try again.')
-      }
+      return
+    }
+
+    // FINAL STEP
+    if (Object.keys(answers).length < QUESTIONS.length) {
+      setError('Please answer all questions before finishing.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const sortedScores = Object.keys(answers)
+      .sort((a, b) => Number(a) - Number(b))
+      .reduce((acc, key) => {
+        acc[key] = answers[key]
+        return acc
+      }, {})
+
+      await updateProfile({
+        personality_scores: sortedScores,
+        onboarding_complete: true,
+      })
+
+      await refreshUser()
+      navigate('/groups')
+    } catch {
+      setSaving(false)
+      setError('Failed to save your results. Please try again.')
     }
   }
 
-  const prev = () => { if (current > 0) setCurrent(c => c - 1) }
+  const prev = () => {
+    if (current > 0) setCurrent(c => c - 1)
+  }
 
   const progress = ((current + 1) / QUESTIONS.length) * 100
   const q = QUESTIONS[current]
   const selected = answers[current]
 
   return (
-    <div className="min-h-screen bg-[var(--turtle-bg)] py-10 px-4">
-      <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-[var(--turtle-border)] p-8 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--turtle-green)] text-lg">🧭</span>
-            <span className="font-semibold text-[var(--turtle-text)]">Personality Assessment</span>
+    <div className="min-h-screen bg-[var(--turtle-bg)] py-10 px-4 relative">
+
+      {/* INTRO MODAL */}
+      {showIntro && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white max-w-lg w-full rounded-2xl p-8 border border-[var(--turtle-border)] shadow-lg">
+
+            <h2 className="text-xl font-semibold mb-3">
+              Before you begin
+            </h2>
+
+            <p className="text-[var(--turtle-text-muted)] mb-6">
+              This personality assessment helps us match you with compatible groups.
+              Your responses are confidential and only used for matching.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={skipAssessment}
+                className="w-1/2 py-3 rounded-lg border border-[var(--turtle-border)] hover:bg-gray-50"
+              >
+                Skip
+              </button>
+
+              <button
+                onClick={() => setShowIntro(false)}
+                className="w-1/2 bg-[var(--turtle-green)] text-white py-3 rounded-lg hover:bg-[var(--turtle-green-dark)]"
+              >
+                Continue
+              </button>
+            </div>
+
           </div>
-          <span className="text-base text-[var(--turtle-text-muted)]">
-            Question {current + 1} of {QUESTIONS.length}
-          </span>
+        </div>
+      )}
+
+      {/* MAIN */}
+      <div className={`max-w-2xl mx-auto bg-white rounded-2xl border border-[var(--turtle-border)] p-8 shadow-sm ${showIntro ? 'blur-sm pointer-events-none' : ''}`}>
+
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-2">
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exitToProfile}
+              className="text-sm text-[var(--turtle-text-muted)] hover:text-red-500"
+            >
+              ← Profile
+            </button>
+
+            <span className="text-[var(--turtle-green)] text-lg">🧭</span>
+            <span className="font-semibold">Personality Assessment</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={skipAssessment}
+              className="text-sm text-[var(--turtle-text-muted)] hover:text-[var(--turtle-text)]"
+            >
+              Skip
+            </button>
+
+            <span className="text-sm text-[var(--turtle-text-muted)]">
+              {current + 1}/{QUESTIONS.length}
+            </span>
+          </div>
+
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full bg-[var(--turtle-border)] rounded-full h-2.5 mb-4">
+        {/* PROGRESS */}
+        <div className="w-full bg-[var(--turtle-border)] rounded-full h-2 mb-4">
           <div
-            className="bg-[var(--turtle-green)] h-2.5 rounded-full transition-all duration-300"
+            className="bg-[var(--turtle-green)] h-2 rounded-full"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <p className="text-base text-[var(--turtle-text-muted)] mb-4">
-          Help us understand your personality to find the best matches for you
-        </p>
+        <h2 className="text-xl font-semibold mb-4">{q.question}</h2>
 
-        <h2 className="text-xl font-semibold text-[var(--turtle-text)] mb-4">{q.question}</h2>
-        {error && (
-          <p className="text-red-500 text-sm mb-4">{error}</p>
-        )}
-        <div className={`space-y-2 mb-4 ${error ? 'border border-red-300 p-2 rounded-lg' : ''}`}>
+        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+
+        <div className="space-y-2 mb-6">
           {q.options.map(option => (
             <button
               key={option}
               onClick={() => selectAnswer(option)}
-              className={`w-full text-left px-4 py-4 rounded-lg border text-base transition-all ${
+              className={`w-full text-left p-4 rounded-lg border transition ${
                 selected === option
-                  ? 'border-[var(--turtle-green)] bg-[var(--turtle-green-light)] text-[var(--turtle-text)]'
-                  : 'border-[var(--turtle-border)] hover:border-gray-300 text-[var(--turtle-text)]'
+                  ? 'border-[var(--turtle-green)] bg-[var(--turtle-green-light)]'
+                  : 'border-[var(--turtle-border)] hover:border-gray-300'
               }`}
             >
               {option}
@@ -173,22 +247,21 @@ export default function Assessment() {
           ))}
         </div>
 
+        {/* NAV */}
         <div className="flex justify-between">
-          <button
-            onClick={prev}
-            disabled={current === 0}
-            className="flex items-center gap-1 text-base text-[var(--turtle-text-muted)] hover:text-[var(--turtle-text)] disabled:opacity-40 transition-colors"
-          >
-            ← Previous
+          <button onClick={prev} disabled={current === 0}>
+            ← Back
           </button>
+
           <button
             onClick={next}
             disabled={!selected || saving}
-            className="flex items-center gap-1 px-6 py-4 bg-[var(--turtle-green)] text-white text-base rounded-lg hover:bg-[var(--turtle-green-dark)] disabled:opacity-50 transition-colors"
+            className="px-6 py-3 bg-[var(--turtle-green)] text-white rounded-lg disabled:opacity-50"
           >
-            {saving ? 'Saving...' : current === QUESTIONS.length - 1 ? 'Finish, Find Groups' : 'Next →'}
+            {saving ? 'Saving...' : current === QUESTIONS.length - 1 ? 'Finish' : 'Next →'}
           </button>
         </div>
+
       </div>
     </div>
   )

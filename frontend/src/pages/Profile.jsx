@@ -57,7 +57,7 @@ export default function Profile() {
     <div className="min-h-screen bg-[var(--turtle-bg)] py-8 px-6">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-[var(--turtle-border)] p-8 shadow-sm">
         <h1 className="text-xl font-bold text-[var(--turtle-text)] mb-6">Edit Profile</h1>
-
+        
         <div className="mb-6">
           <label className="block font-medium text-[var(--turtle-text)] mb-2 text-base">Your Name</label>
           <input
@@ -89,6 +89,14 @@ export default function Profile() {
             ))}
           </div>
         </div>
+        <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate('/assessment')}
+          className="w-full py-2 text-sm rounded-lg bg-[var(--turtle-green)] text-white hover:bg-[var(--turtle-green-dark)] transition-colors"
+        >
+          Retake Personality Assessment
+        </button>
+      </div>
 
         <div className="mb-6 flex items-center justify-between p-4 border border-[var(--turtle-border)] rounded-xl">
           <div>
