@@ -118,6 +118,31 @@ def build_report_html(data: dict) -> str:
 </body>
 </html>"""
 
+def build_group_report_html(data: dict) -> str:
+    group_name = data.get("group_name", "A group")
+    reason = data.get("reason", "No reason provided")
+    details = data.get("details", "")
+
+    return f"""
+    <div style="font-family:Georgia,serif;padding:24px">
+      <h2 style="color:#5a7a5a">Group Safety Report</h2>
+
+      <p><strong>Group:</strong> {group_name}</p>
+      <p><strong>Reason:</strong> {reason}</p>
+
+      <p><strong>Details:</strong></p>
+      <p style="background:#f5f7f5;padding:12px;border-radius:8px">
+        {details if details else "No additional details provided."}
+      </p>
+
+      <hr style="margin:24px 0;border:none;border-top:1px solid #ddd"/>
+
+      <p style="color:#888;font-size:12px">
+        This report was submitted through Turtle Connect safety system.
+      </p>
+    </div>
+    """
+
 
 def _send_email_sync(to: str, subject: str, html: str) -> None:
     if not settings.resend_api_key:

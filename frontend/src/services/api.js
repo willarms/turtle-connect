@@ -36,6 +36,7 @@ export const getGroup = (id) => api.get(`/api/groups/${id}`)
 export const createGroup = (data) => api.post('/api/groups', data)
 export const joinGroup = (id) => api.post(`/api/groups/${id}/join`)
 export const toggleFavorite = (id) => api.post(`/api/groups/${id}/favorite`)
+export const leaveGroup = (id) => api.post(`/api/groups/${id}/leave`)
 
 // Matching
 export const runMatching = () => api.post('/api/match')
@@ -56,7 +57,19 @@ export const googleCallback = (code, codeVerifier) =>
 export const createMeetLink = (groupId) =>
   api.post(`/api/groups/${groupId}/meet-link`)
 
-export const logCall = (groupId, durationMinutes) =>
-  api.post(`/api/groups/${groupId}/log-call`, { duration_minutes: durationMinutes })
+export const getMessages = (groupId) =>
+  api.get(`/api/groups/${groupId}/messages`)
+
+export const sendGroupReport = (groupId, data) =>
+  api.post(`/api/groups/${groupId}/report`, {
+    reason: data.reason,
+    details: data.details,
+  })
+
+export const submitMeetingReport = (groupId, data) =>
+  api.post(`/api/groups/${groupId}/report`, data)
+
+export const setMeetingTime = (groupId, nextMeetingAt) =>
+  api.put(`/api/groups/${groupId}/meeting-time`, { next_meeting_at: nextMeetingAt })
 
 export default api

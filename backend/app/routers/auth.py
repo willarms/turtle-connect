@@ -133,6 +133,8 @@ async def google_callback(body: GoogleCallbackRequest, db: Session = Depends(get
         db.add(profile)
         db.commit()
         db.refresh(user)
+        jwt = create_access_token({"sub": str(user.id)})
+        return TokenResponse(access_token=jwt, is_new_user=True)
 
     jwt = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=jwt)

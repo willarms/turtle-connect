@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -8,14 +8,25 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.activity import Activity
 from app.models.group import Group, GroupMembership
+from app.models.message import Message
+from app.models.report import MeetingReport
 from app.models.user import User
 from app.schemas.group import GroupCreate, GroupOut
 from app.services.matching import get_suggested_groups
 from app.services.google_oauth import create_meet_link, refresh_access_token
 
+from app.services.email import send_email, build_group_report_html
+from app.config import settings
 
 class LogCallRequest(BaseModel):
     duration_minutes: int
+
+
+class MeetingReportRequest(BaseModel):
+    flag_password_request: bool = False
+    flag_offensive_language: bool = False
+    flag_confusing: bool = False
+    additional_notes: str = ""
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
@@ -32,6 +43,8 @@ def _serialize_group(group: Group, user_id: int) -> dict:
         "is_favorite": membership.is_favorite if membership else False,
         "is_member": membership is not None,
         "google_meet_url": group.google_meet_url,
+        "members": [{"id": m.user_id, "name": m.user.name} for m in group.memberships],
+        "next_meeting_at": group.next_meeting_at,
     }
 
 
@@ -200,6 +213,30 @@ def log_call(
     return {"ok": True}
 
 
+@router.post("/{group_id}/report")
+def submit_meeting_report(
+    group_id: int,
+    body: MeetingReportRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    membership = db.query(GroupMembership).filter_by(user_id=current_user.id, group_id=group_id).first()
+    if not membership:
+        raise HTTPException(status_code=403, detail="You must be a member of this group")
+
+    report = MeetingReport(
+        user_id=current_user.id,
+        group_id=group_id,
+        flag_password_request=body.flag_password_request,
+        flag_offensive_language=body.flag_offensive_language,
+        flag_confusing=body.flag_confusing,
+        additional_notes=body.additional_notes.strip() or None,
+    )
+    db.add(report)
+    db.commit()
+    return {"ok": True}
+
+
 @router.post("/{group_id}/favorite", response_model=GroupOut)
 def toggle_favorite(
     group_id: int,
@@ -218,3 +255,126 @@ def toggle_favorite(
     db.commit()
     db.refresh(membership.group)
     return _serialize_group(membership.group, current_user.id)
+
+class MeetingTimeRequest(BaseModel):
+    next_meeting_at: Optional[str] = None  # ISO string or null to clear
+
+
+@router.put("/{group_id}/meeting-time", response_model=GroupOut)
+def set_meeting_time(
+    group_id: int,
+    body: MeetingTimeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    membership = db.query(GroupMembership).filter_by(user_id=current_user.id, group_id=group_id).first()
+    if not membership:
+        raise HTTPException(status_code=403, detail="You must be a member to schedule a meeting")
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if body.next_meeting_at:
+        from datetime import datetime as dt
+        group.next_meeting_at = dt.fromisoformat(body.next_meeting_at)
+    else:
+        group.next_meeting_at = None
+    db.commit()
+    db.refresh(group)
+    return _serialize_group(group, current_user.id)
+
+
+@router.post("/{group_id}/leave", response_model=GroupOut)
+def leave_group(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    membership = (
+        db.query(GroupMembership)
+        .filter_by(user_id=current_user.id, group_id=group_id)
+        .first()
+    )
+
+    if membership:
+        db.delete(membership)
+        db.commit()
+
+    # IMPORTANT: return updated group (same pattern as join)
+    return _serialize_group(group, current_user.id)
+
+@router.post("/{group_id}/report")
+async def report_group(
+    group_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # Save structured report to DB (post-meeting modal flags)
+    flag_password = bool(payload.get("flag_password_request", False))
+    flag_language = bool(payload.get("flag_offensive_language", False))
+    flag_confusing = bool(payload.get("flag_confusing", False))
+    notes = (payload.get("additional_notes") or payload.get("details") or "").strip() or None
+
+    db.add(MeetingReport(
+        user_id=current_user.id,
+        group_id=group_id,
+        flag_password_request=flag_password,
+        flag_offensive_language=flag_language,
+        flag_confusing=flag_confusing,
+        additional_notes=notes,
+    ))
+    db.commit()
+
+    # Send admin email if any flags are raised or a reason was given
+    any_flagged = flag_password or flag_language or flag_confusing or notes or payload.get("reason")
+    if any_flagged:
+        try:
+            html = build_group_report_html({
+                "group_name": group.name,
+                "reason": payload.get("reason"),
+                "details": notes,
+            })
+            await send_email(
+                to="fdougher@nd.edu",
+                subject="Group Safety Report",
+                html=html,
+            )
+        except Exception:
+            # Email delivery failure is non-critical — report is already saved to DB
+            pass
+
+    return {"success": True}
+
+
+@router.get("/{group_id}/messages")
+def get_messages(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    msgs = (
+        db.query(Message)
+        .filter(Message.group_id == group_id)
+        .order_by(Message.created_at.asc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "id": m.id,
+            "group_id": m.group_id,
+            "sender_id": m.sender_id,
+            "sender_name": m.sender.name if m.sender else "Unknown",
+            "content": m.content,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in msgs
+    ]

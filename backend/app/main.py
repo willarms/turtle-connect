@@ -1,3 +1,4 @@
+import socketio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,7 @@ from app.models.user import GuardianLink, User
 from app.routers import auth, groups, guardian, matching, users
 from app.services.dashboard import build_dashboard_data
 from app.services.email import build_report_html, send_email
+from app.socket import sio
 
 app = FastAPI(title="Turtle Connect API", version="0.1.0")
 
@@ -61,3 +63,6 @@ async def shutdown():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+socket_app = socketio.ASGIApp(sio, other_asgi_app=app)

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { getMyGroups, getSuggestedGroups, joinGroup, toggleFavorite } from '../services/api'
+import { getMessages, getMyGroups, getSuggestedGroups, joinGroup, toggleFavorite } from '../services/api'
+import socket from '../services/socket'
 
 function GroupCard({ group, onJoin, onFavorite }) {
   return (
@@ -55,18 +56,38 @@ export default function Groups() {
   const [suggested, setSuggested] = useState([])
   const [tab, setTab] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [latestMessages, setLatestMessages] = useState({}) // { groupId: message }
 
   const load = async () => {
     try {
       const [myRes, sugRes] = await Promise.all([getMyGroups(), getSuggestedGroups()])
       setMyGroups(myRes.data)
       setSuggested(sugRes.data)
+
+      // Load latest message for each joined group
+      const latest = {}
+      await Promise.all(myRes.data.map(async g => {
+        const res = await getMessages(g.id)
+        const msgs = res.data
+        if (msgs.length > 0) latest[g.id] = msgs[msgs.length - 1]
+      }))
+      setLatestMessages(latest)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    socket.connect()
+    socket.on('new_message', msg => {
+      setLatestMessages(prev => ({ ...prev, [msg.group_id]: msg }))
+    })
+    return () => {
+      socket.off('new_message')
+      socket.disconnect()
+    }
+  }, [])
 
   const handleJoin = async (id) => {
     await joinGroup(id)
@@ -92,7 +113,29 @@ export default function Groups() {
 
   return (
     <div className="min-h-screen bg-[var(--turtle-bg)] py-8 px-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto flex gap-6">
+        {/* Recent messages sidebar */}
+        <div className="hidden md:block w-64 shrink-0">
+          <div className="bg-white rounded-2xl border border-[var(--turtle-border)] p-4 sticky top-8">
+            <h2 className="text-base font-semibold text-[var(--turtle-text)] mb-3">Recent Messages</h2>
+            {myGroups.length === 0
+              ? <p className="text-sm text-[var(--turtle-text-muted)]">Join a group to see messages here.</p>
+              : myGroups.map(g => (
+                <Link key={g.id} to={`/groups/${g.id}`} className="block mb-3 hover:opacity-80 transition-opacity">
+                  <p className="text-sm font-medium text-[var(--turtle-green)] truncate">{g.name}</p>
+                  {latestMessages[g.id]
+                    ? <p className="text-sm text-[var(--turtle-text-muted)] truncate">
+                        <span className="font-medium">{latestMessages[g.id].sender_name}:</span> {latestMessages[g.id].content}
+                      </p>
+                    : <p className="text-sm text-[var(--turtle-text-muted)] italic">No messages yet</p>
+                  }
+                </Link>
+              ))
+            }
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-[var(--turtle-text)]">Your Groups</h1>
@@ -101,7 +144,7 @@ export default function Groups() {
             </p>
           </div>
           <Link
-            to="#"
+            to="/groups/create"
             className="px-4 py-3 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-base rounded-lg hover:bg-[var(--turtle-green-light)] transition-colors"
           >
             + Create Group
@@ -157,6 +200,7 @@ export default function Groups() {
             Update Profile
           </Link>
         </div>
+        </div> {/* end flex-1 */}
       </div>
     </div>
   )
