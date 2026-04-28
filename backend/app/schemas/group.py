@@ -20,6 +20,7 @@ class GroupOut(BaseModel):
     is_member: bool = False
     google_meet_url: Optional[str] = None
     members: List[MemberOut] = []
+    next_meeting_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

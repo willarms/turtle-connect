@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { createMeetLink, getGoogleAuthorizeUrl, getGroup, getMessages, joinGroup, logCall, leaveGroup, submitMeetingReport } from '../services/api'
+import { createMeetLink, getGoogleAuthorizeUrl, getGroup, getMessages, joinGroup, logCall, leaveGroup, submitMeetingReport, setMeetingTime } from '../services/api'
 import socket from '../services/socket'
 
 const DURATION_OPTIONS = [
@@ -9,6 +9,28 @@ const DURATION_OPTIONS = [
   { label: 'About 45 minutes', minutes: 45 },
   { label: 'An hour or more', minutes: null },
 ]
+
+function formatMeetingTime(iso) {
+  if (!iso) return null
+  return new Date(iso).toLocaleString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  })
+}
+
+function googleCalendarUrl(group) {
+  if (!group.next_meeting_at) return null
+  const start = new Date(group.next_meeting_at)
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: group.name,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: `Join at ${group.google_meet_url || 'TBD'}`,
+  })
+  return `https://calendar.google.com/calendar/render?${params}`
+}
 
 function formatMinutes(mins) {
   const h = Math.floor(mins / 60)
@@ -38,6 +60,8 @@ export default function GroupDetail() {
   const [messages, setMessages] = useState([])
   const [chatInput, setChatInput] = useState('')
   const messagesEndRef = useRef(null)
+  const [showTimePicker, setShowTimePicker] = useState(false)
+  const [meetingTimeInput, setMeetingTimeInput] = useState('')
 
   // Load message history and connect socket when group is a member
   useEffect(() => {
@@ -152,6 +176,13 @@ export default function GroupDetail() {
 
   const handleReportSkip = () => {
     setShowMeetingReport(false)
+  }
+
+  const handleSaveMeetingTime = async () => {
+    await setMeetingTime(id, meetingTimeInput || null)
+    const res = await getGroup(id)
+    setGroup(res.data)
+    setShowTimePicker(false)
   }
 
   const handleDurationChoice = (minutes) => {
@@ -525,10 +556,77 @@ export default function GroupDetail() {
                   🔗 {meetCreating ? 'Creating...' : 'Create Meet Link'}
                 </button>
               )}
+
+              {/* Meeting scheduler */}
+              <div className="border-t border-[var(--turtle-border)] pt-4 mt-1">
+                {group.next_meeting_at && !showTimePicker ? (
+                  <div className="bg-[var(--turtle-green-light)] rounded-xl p-4">
+                    <p className="text-base font-medium text-[var(--turtle-text)] mb-1">📅 Next meeting</p>
+                    <p className="text-xl font-bold text-[var(--turtle-green)] mb-3">
+                      {formatMeetingTime(group.next_meeting_at)}
+                    </p>
+                    <div className="flex gap-3">
+                      <a
+                        href={googleCalendarUrl(group)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 text-center py-3 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-base rounded-lg hover:bg-white transition-colors"
+                      >
+                        + Add to My Calendar
+                      </a>
+                      <button
+                        onClick={() => { setMeetingTimeInput(''); setShowTimePicker(true) }}
+                        className="px-4 py-3 text-[var(--turtle-text-muted)] text-base rounded-lg hover:bg-white border border-[var(--turtle-border)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ) : !showTimePicker ? (
+                  <div className="text-center">
+                    <p className="text-[var(--turtle-text-muted)] text-base mb-3">No meeting scheduled yet</p>
+                    <button
+                      onClick={() => { setMeetingTimeInput(''); setShowTimePicker(true) }}
+                      className="px-5 py-3 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-base rounded-lg hover:bg-[var(--turtle-green-light)] transition-colors"
+                    >
+                      📅 Schedule a Meeting
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-white border-2 border-[var(--turtle-green)] rounded-xl p-5">
+                    <p className="text-base font-medium text-[var(--turtle-text)] mb-3">Pick a date and time</p>
+                    <input
+                      type="datetime-local"
+                      value={meetingTimeInput}
+                      onChange={e => setMeetingTimeInput(e.target.value)}
+                      className="w-full border-2 border-[var(--turtle-border)] rounded-xl px-4 py-3 text-base text-[var(--turtle-text)] mb-4 focus:outline-none focus:border-[var(--turtle-green)]"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleSaveMeetingTime}
+                        className="flex-1 py-3 bg-[var(--turtle-green)] text-white text-base font-semibold rounded-xl hover:bg-[var(--turtle-green-dark)] transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setShowTimePicker(false)}
+                        className="px-5 py-3 text-[var(--turtle-text-muted)] text-base rounded-xl border border-[var(--turtle-border)] hover:text-[var(--turtle-text)] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="bg-[var(--turtle-green-light)] rounded-xl p-4 text-center">
               <p className="text-base text-[var(--turtle-text)]">Join this group to connect with members and participate in activities</p>
+              {group.next_meeting_at && (
+                <p className="text-base font-medium text-[var(--turtle-green)] mt-3">
+                  📅 Next meeting: {formatMeetingTime(group.next_meeting_at)}
+                </p>
+              )}
             </div>
           )}
         </div>

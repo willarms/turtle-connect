@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -44,6 +44,7 @@ def _serialize_group(group: Group, user_id: int) -> dict:
         "is_member": membership is not None,
         "google_meet_url": group.google_meet_url,
         "members": [{"id": m.user_id, "name": m.user.name} for m in group.memberships],
+        "next_meeting_at": group.next_meeting_at,
     }
 
 
@@ -254,6 +255,33 @@ def toggle_favorite(
     db.commit()
     db.refresh(membership.group)
     return _serialize_group(membership.group, current_user.id)
+
+class MeetingTimeRequest(BaseModel):
+    next_meeting_at: Optional[str] = None  # ISO string or null to clear
+
+
+@router.put("/{group_id}/meeting-time", response_model=GroupOut)
+def set_meeting_time(
+    group_id: int,
+    body: MeetingTimeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    membership = db.query(GroupMembership).filter_by(user_id=current_user.id, group_id=group_id).first()
+    if not membership:
+        raise HTTPException(status_code=403, detail="You must be a member to schedule a meeting")
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if body.next_meeting_at:
+        from datetime import datetime as dt
+        group.next_meeting_at = dt.fromisoformat(body.next_meeting_at)
+    else:
+        group.next_meeting_at = None
+    db.commit()
+    db.refresh(group)
+    return _serialize_group(group, current_user.id)
+
 
 @router.post("/{group_id}/leave", response_model=GroupOut)
 def leave_group(

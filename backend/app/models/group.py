@@ -18,6 +18,7 @@ class Group(Base):
     google_meet_url = Column(String, nullable=True)
     meet_event_id = Column(String, nullable=True)
     meet_host_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    next_meeting_at = Column(DateTime, nullable=True)
 
     memberships = relationship("GroupMembership", back_populates="group")
     messages = relationship("Message", back_populates="group")

@@ -69,4 +69,7 @@ export const sendGroupReport = (groupId, data) =>
 export const submitMeetingReport = (groupId, data) =>
   api.post(`/api/groups/${groupId}/report`, data)
 
+export const setMeetingTime = (groupId, nextMeetingAt) =>
+  api.put(`/api/groups/${groupId}/meeting-time`, { next_meeting_at: nextMeetingAt })
+
 export default api
