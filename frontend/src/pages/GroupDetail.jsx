@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup, logCall } from '../services/api'
+import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup, logCall, submitMeetingReport } from '../services/api'
 
 const DURATION_OPTIONS = [
   { label: 'About 15 minutes', minutes: 15 },
@@ -26,6 +26,14 @@ export default function GroupDetail() {
   const [showHourPicker, setShowHourPicker] = useState(false)
   const [customMinutes, setCustomMinutes] = useState(60)
   const [callLogged, setCallLogged] = useState(false)
+  const [showMeetingReport, setShowMeetingReport] = useState(false)
+  const [reportFlags, setReportFlags] = useState({
+    flag_password_request: false,
+    flag_offensive_language: false,
+    flag_confusing: false,
+    additional_notes: '',
+  })
+  const [reportSubmitting, setReportSubmitting] = useState(false)
 
   useEffect(() => {
     getGroup(id)
@@ -87,6 +95,30 @@ export default function GroupDetail() {
     } catch {
       // fail silently — not critical
     }
+    // Reset report flags and show the safety report step
+    setReportFlags({
+      flag_password_request: false,
+      flag_offensive_language: false,
+      flag_confusing: false,
+      additional_notes: '',
+    })
+    setShowMeetingReport(true)
+  }
+
+  const handleReportSubmit = async () => {
+    setReportSubmitting(true)
+    try {
+      await submitMeetingReport(id, reportFlags)
+    } catch {
+      // fail silently — report submission is non-critical
+    } finally {
+      setReportSubmitting(false)
+      setShowMeetingReport(false)
+    }
+  }
+
+  const handleReportSkip = () => {
+    setShowMeetingReport(false)
   }
 
   const handleDurationChoice = (minutes) => {
@@ -204,6 +236,73 @@ export default function GroupDetail() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Post-meeting safety report modal */}
+      {showMeetingReport && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-xl">
+            <div className="text-5xl mb-4 text-center">🛡️</div>
+            <h2 className="text-2xl font-bold text-[var(--turtle-text)] mb-2 text-center">
+              Before you go
+            </h2>
+            <p className="text-base text-[var(--turtle-text-muted)] mb-6 text-center leading-relaxed">
+              Did anything concern you during the meeting? Your answers are private.
+            </p>
+
+            <div className="space-y-3 mb-6">
+              {[
+                { key: 'flag_password_request', label: 'Someone asked for my password or login information' },
+                { key: 'flag_offensive_language', label: 'Someone used offensive or upsetting language' },
+                { key: 'flag_confusing',          label: 'Something happened that I didn\'t understand' },
+              ].map(({ key, label }) => (
+                <label
+                  key={key}
+                  className={`flex items-start gap-4 py-4 px-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                    reportFlags[key]
+                      ? 'border-[var(--turtle-green)] bg-[var(--turtle-green-light)]'
+                      : 'border-[var(--turtle-border)] bg-gray-50 hover:border-[var(--turtle-green)]'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 w-5 h-5 accent-[var(--turtle-green)] shrink-0"
+                    checked={reportFlags[key]}
+                    onChange={e => setReportFlags(f => ({ ...f, [key]: e.target.checked }))}
+                  />
+                  <span className="text-base text-[var(--turtle-text)] leading-snug">{label}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-base font-medium text-[var(--turtle-text)] mb-2">
+                Tell us more <span className="font-normal text-[var(--turtle-text-muted)]">(optional)</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Describe what happened, or name the person who concerned you…"
+                value={reportFlags.additional_notes}
+                onChange={e => setReportFlags(f => ({ ...f, additional_notes: e.target.value }))}
+                className="w-full rounded-xl border-2 border-[var(--turtle-border)] px-4 py-3 text-base text-[var(--turtle-text)] placeholder:text-[var(--turtle-text-muted)] focus:outline-none focus:border-[var(--turtle-green)] resize-none"
+              />
+            </div>
+
+            <button
+              onClick={handleReportSubmit}
+              disabled={reportSubmitting}
+              className="w-full py-4 bg-[var(--turtle-green)] text-white text-lg font-semibold rounded-xl hover:bg-[var(--turtle-green-dark)] transition-colors mb-3 disabled:opacity-60"
+            >
+              {reportSubmitting ? 'Sending…' : 'Submit Report'}
+            </button>
+            <button
+              onClick={handleReportSkip}
+              className="w-full py-3 text-[var(--turtle-text-muted)] text-base hover:text-[var(--turtle-text)] transition-colors"
+            >
+              Everything was fine
+            </button>
           </div>
         </div>
       )}

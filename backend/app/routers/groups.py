@@ -8,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.activity import Activity
 from app.models.group import Group, GroupMembership
+from app.models.report import MeetingReport
 from app.models.user import User
 from app.schemas.group import GroupCreate, GroupOut
 from app.services.matching import get_suggested_groups
@@ -16,6 +17,13 @@ from app.services.google_oauth import create_meet_link, refresh_access_token
 
 class LogCallRequest(BaseModel):
     duration_minutes: int
+
+
+class MeetingReportRequest(BaseModel):
+    flag_password_request: bool = False
+    flag_offensive_language: bool = False
+    flag_confusing: bool = False
+    additional_notes: str = ""
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
 
@@ -196,6 +204,30 @@ def log_call(
         activity_type="call",
         duration_minutes=body.duration_minutes,
     ))
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/{group_id}/report")
+def submit_meeting_report(
+    group_id: int,
+    body: MeetingReportRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    membership = db.query(GroupMembership).filter_by(user_id=current_user.id, group_id=group_id).first()
+    if not membership:
+        raise HTTPException(status_code=403, detail="You must be a member of this group")
+
+    report = MeetingReport(
+        user_id=current_user.id,
+        group_id=group_id,
+        flag_password_request=body.flag_password_request,
+        flag_offensive_language=body.flag_offensive_language,
+        flag_confusing=body.flag_confusing,
+        additional_notes=body.additional_notes.strip() or None,
+    )
+    db.add(report)
     db.commit()
     return {"ok": True}
 
