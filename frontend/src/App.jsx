@@ -13,6 +13,7 @@ import Profile from './pages/Profile'
 import ProfileSetup from './pages/ProfileSetup'
 import CreateGroup from './pages/CreateGroup'
 import ReportGroup from './pages/ReportGroup'
+import Help from './pages/Help'
 
 
 function Layout({ children }) {
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/guardian" element={<ProtectedRoute><Guardian /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/groups/:id/report" element={<ReportGroup />} />
+            <Route path="/help" element={<Help />} />
           </Routes>
         </Layout>
       </AuthProvider>
