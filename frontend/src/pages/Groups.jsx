@@ -101,7 +101,7 @@ export default function Groups() {
             </p>
           </div>
           <Link
-            to="#"
+            to="/groups/create"
             className="px-4 py-3 border border-[var(--turtle-green)] text-[var(--turtle-green)] text-base rounded-lg hover:bg-[var(--turtle-green-light)] transition-colors"
           >
             + Create Group
