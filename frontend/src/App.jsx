@@ -12,6 +12,8 @@ import OAuthCallback from './pages/OAuthCallback'
 import Profile from './pages/Profile'
 import ProfileSetup from './pages/ProfileSetup'
 import CreateGroup from './pages/CreateGroup'
+import ReportGroup from './pages/ReportGroup'
+
 
 function Layout({ children }) {
   return (
@@ -38,6 +40,7 @@ export default function App() {
             <Route path="/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
             <Route path="/guardian" element={<ProtectedRoute><Guardian /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/groups/:id/report" element={<ReportGroup />} />
           </Routes>
         </Layout>
       </AuthProvider>

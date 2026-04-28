@@ -14,6 +14,8 @@ from app.schemas.group import GroupCreate, GroupOut
 from app.services.matching import get_suggested_groups
 from app.services.google_oauth import create_meet_link, refresh_access_token
 
+from app.services.email import send_email, build_group_report_html
+from app.config import settings
 
 class LogCallRequest(BaseModel):
     duration_minutes: int
@@ -250,3 +252,51 @@ def toggle_favorite(
     db.commit()
     db.refresh(membership.group)
     return _serialize_group(membership.group, current_user.id)
+
+@router.post("/{group_id}/leave", response_model=GroupOut)
+def leave_group(
+    group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    membership = (
+        db.query(GroupMembership)
+        .filter_by(user_id=current_user.id, group_id=group_id)
+        .first()
+    )
+
+    if membership:
+        db.delete(membership)
+        db.commit()
+
+    # IMPORTANT: return updated group (same pattern as join)
+    return _serialize_group(group, current_user.id)
+
+@router.post("/{group_id}/report")
+async def report_group(
+    group_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    html = build_group_report_html({
+        "group_name": group.name,
+        "reason": payload.get("reason"),
+        "details": payload.get("details"),
+    })
+
+    await send_email(
+        to="fdougher@nd.edu",   # or admin email
+        subject="Group Safety Report",
+        html=html
+    )
+
+    return {"success": True}

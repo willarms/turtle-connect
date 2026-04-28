@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup, logCall, submitMeetingReport } from '../services/api'
+import { createMeetLink, getGoogleAuthorizeUrl, getGroup, joinGroup, logCall, leaveGroup, submitMeetingReport } from '../services/api'
 
 const DURATION_OPTIONS = [
   { label: 'About 15 minutes', minutes: 15 },
@@ -313,19 +313,90 @@ export default function GroupDetail() {
         </Link>
 
         <div className="bg-white rounded-2xl border border-[var(--turtle-border)] p-6 shadow-sm">
-          <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="text-xl font-bold text-[var(--turtle-text)]">{group.name}</h1>
-              <p className="text-[var(--turtle-text-muted)] text-base mt-1">{group.member_count} members</p>
+              <p className="text-[var(--turtle-text-muted)] text-base mt-1">
+                {group.member_count} members
+              </p>
             </div>
-            {!group.is_member && (
-              <button
-                onClick={handleJoin}
-                className="px-6 py-3 bg-[var(--turtle-green)] text-white text-base rounded-lg hover:bg-[var(--turtle-green-dark)] transition-colors"
+
+            <div className="flex items-center gap-2">
+              {/* Report button */}
+              <Link
+                to={`/groups/${id}/report`}
+                className="p-2 rounded-lg hover:bg-red-50 text-[var(--turtle-text-muted)] hover:text-red-600 transition-colors relative group"
+                aria-label="Report group"
               >
-                Join Group
-              </button>
-            )}
+                {/* Bell icon (simple SVG) */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405C18.21 14.79 18 14.4 18 14V11a6 6 0 10-12 0v3c0 .4-.21.79-.595 1.095L4 17h5m6 0a3 3 0 11-6 0m6 0H9"
+                  />
+                </svg>
+
+                {/* Tooltip */}
+                <span className="absolute right-0 -bottom-8 hidden group-hover:block bg-black text-white text-xs px-2 py-1 rounded">
+                  Report
+                </span>
+              </Link>
+
+              {/* Leave group button (only if member) */}
+              {group.is_member && (
+                <div className="relative group">
+                <button
+                  onClick={async () => {
+                    await leaveGroup(id)
+                    const res = await getGroup(id)
+                    setGroup(res.data)
+                  }}
+                  className="p-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-50 transition-colors"
+                  aria-label="Exit group"
+                >
+                  {/* exit icon */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
+                    />
+                  </svg>
+                </button>
+              
+                {/* tooltip */}
+                <span className="absolute right-0 -bottom-8 hidden group-hover:block bg-black text-white text-xs px-2 py-1 rounded">
+                  Exit Group
+                </span>
+              </div>
+              )}
+              
+
+              {/* Join button */}
+              {!group.is_member && (
+                <button
+                  onClick={handleJoin}
+                  className="px-6 py-3 bg-[var(--turtle-green)] text-white text-base rounded-lg hover:bg-[var(--turtle-green-dark)] transition-colors"
+                >
+                  Join Group
+                </button>
+              )}
+            </div>
           </div>
 
           <p className="text-[var(--turtle-text-muted)] text-base mb-4 leading-relaxed">{group.description}</p>
