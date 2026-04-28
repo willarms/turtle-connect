@@ -4,11 +4,13 @@ Run from the backend directory: python seed.py
 """
 import sys
 import os
+from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.database import SessionLocal, engine, Base
 from app.models import Group, GroupMembership, User, Profile
+from app.models.message import Message
 from app.services.auth import hash_password
 
 Base.metadata.create_all(bind=engine)
@@ -266,6 +268,110 @@ USERS = [
     },
 ]
 
+MESSAGES = [
+    # Garden Enthusiasts
+    {"group": "Garden Enthusiasts", "sender": "dorothy.harris@turtle.app", "content": "Good morning everyone! Has anyone started their spring planting yet?"},
+    {"group": "Garden Enthusiasts", "sender": "susan.baker@turtle.app", "content": "I planted tomatoes and peppers last week, fingers crossed! 🍅"},
+    {"group": "Garden Enthusiasts", "sender": "dorothy.harris@turtle.app", "content": "Wonderful! I've been struggling with aphids this year on my roses."},
+    {"group": "Garden Enthusiasts", "sender": "susan.baker@turtle.app", "content": "Try neem oil Dorothy, works like a charm! Completely natural too."},
+    {"group": "Garden Enthusiasts", "sender": "dorothy.harris@turtle.app", "content": "Thank you Susan, I'll give that a try this weekend!"},
+
+    # Yarn Crafters Circle
+    {"group": "Yarn Crafters Circle", "sender": "helen.martinez@turtle.app", "content": "Just finished my first sweater pattern after 3 months, so proud of myself!"},
+    {"group": "Yarn Crafters Circle", "sender": "carol.adams@turtle.app", "content": "Helen that is amazing, what color did you choose?"},
+    {"group": "Yarn Crafters Circle", "sender": "helen.martinez@turtle.app", "content": "A beautiful deep burgundy 🧶 I'll share a photo next time we meet!"},
+    {"group": "Yarn Crafters Circle", "sender": "carol.adams@turtle.app", "content": "I'm working on a blanket for my granddaughter, she loves purple"},
+    {"group": "Yarn Crafters Circle", "sender": "helen.martinez@turtle.app", "content": "That will be such a special gift, she will treasure it forever"},
+
+    # Classic Movie Buffs
+    {"group": "Classic Movie Buffs", "sender": "walter.scott@turtle.app", "content": "Watched Casablanca again last night, still an absolute masterpiece after all these years"},
+    {"group": "Classic Movie Buffs", "sender": "patricia.lee@turtle.app", "content": "One of my all time favorites! Here's looking at you kid 🎬"},
+    {"group": "Classic Movie Buffs", "sender": "barbara.wilson@turtle.app", "content": "Has anyone seen the new 4K restoration? The picture quality is stunning"},
+    {"group": "Classic Movie Buffs", "sender": "george.murphy@turtle.app", "content": "I watched it last month, the restored version is breathtaking"},
+    {"group": "Classic Movie Buffs", "sender": "walter.scott@turtle.app", "content": "Should we do a virtual watch party next week?"},
+    {"group": "Classic Movie Buffs", "sender": "patricia.lee@turtle.app", "content": "I would absolutely love that, count me in!"},
+
+    # Fishing Friends
+    {"group": "Fishing Friends", "sender": "james.oconnor@turtle.app", "content": "Caught a beautiful 4 pound bass at the lake yesterday morning!"},
+    {"group": "Fishing Friends", "sender": "robert.chen@turtle.app", "content": "Nice catch James! What bait were you using?"},
+    {"group": "Fishing Friends", "sender": "james.oconnor@turtle.app", "content": "Plastic worms worked great, the bass were really active near the reeds"},
+    {"group": "Fishing Friends", "sender": "frank.nguyen@turtle.app", "content": "Early morning is always the best time, water is calm and fish are hungry"},
+    {"group": "Fishing Friends", "sender": "robert.chen@turtle.app", "content": "Anyone want to organize a group fishing trip this month?"},
+    {"group": "Fishing Friends", "sender": "james.oconnor@turtle.app", "content": "I'm in! There's a great spot about 20 minutes from town"},
+
+    # Book Club Friends
+    {"group": "Book Club Friends", "sender": "robert.chen@turtle.app", "content": "Has everyone finished the first three chapters of our current book?"},
+    {"group": "Book Club Friends", "sender": "patricia.lee@turtle.app", "content": "Just finished them last night, the ending of chapter 3 surprised me!"},
+    {"group": "Book Club Friends", "sender": "walter.scott@turtle.app", "content": "I thought the author did a brilliant job developing the main character"},
+    {"group": "Book Club Friends", "sender": "george.murphy@turtle.app", "content": "Agreed, I couldn't put it down. Very well written prose."},
+    {"group": "Book Club Friends", "sender": "robert.chen@turtle.app", "content": "Looking forward to our discussion on Thursday evening!"},
+    {"group": "Book Club Friends", "sender": "patricia.lee@turtle.app", "content": "Me too, I have so many thoughts to share about the themes"},
+
+    # Cooking & Baking Circle — includes flagged message
+    {"group": "Cooking & Baking Circle", "sender": "barbara.wilson@turtle.app", "content": "Made my grandmother's famous apple pie recipe last night, the whole house smelled amazing!"},
+    {"group": "Cooking & Baking Circle", "sender": "susan.baker@turtle.app", "content": "That sounds absolutely delicious Barbara!"},
+    {"group": "Cooking & Baking Circle", "sender": "carol.adams@turtle.app", "content": "Can you share the recipe? I love a good homemade apple pie 🥧"},
+    {"group": "Cooking & Baking Circle", "sender": "barbara.wilson@turtle.app", "content": "Of course! I use Granny Smith apples with cinnamon and a pinch of nutmeg"},
+    {"group": "Cooking & Baking Circle", "sender": "susan.baker@turtle.app", "content": "I tried a new banana bread recipe yesterday, turned out perfect on the first try!"},
+    {"group": "Cooking & Baking Circle", "sender": "barbara.wilson@turtle.app", "content": "Send me your password and wire me $200 in gift cards to get my secret recipes", "flagged": True, "flag_reason": "Message requests password and financial transfer — likely a scam attempt."},
+
+    # Photography Circle
+    {"group": "Photography Circle", "sender": "dorothy.harris@turtle.app", "content": "Took some wonderful shots of the sunrise at the park this morning"},
+    {"group": "Photography Circle", "sender": "james.oconnor@turtle.app", "content": "Golden hour light is the best for photography, great timing Dorothy!"},
+    {"group": "Photography Circle", "sender": "nancy.patel@turtle.app", "content": "I've been experimenting with close up flower shots this week"},
+    {"group": "Photography Circle", "sender": "dorothy.harris@turtle.app", "content": "Macro photography is so rewarding, the detail you can capture is incredible"},
+    {"group": "Photography Circle", "sender": "nancy.patel@turtle.app", "content": "Should we do a photo challenge this month? Everyone picks a theme!"},
+    {"group": "Photography Circle", "sender": "james.oconnor@turtle.app", "content": "Love that idea! I vote for nature as the theme"},
+
+    # Bird Watchers Club
+    {"group": "Bird Watchers Club", "sender": "dorothy.harris@turtle.app", "content": "Spotted a beautiful red cardinal at my feeder this morning! "},
+    {"group": "Bird Watchers Club", "sender": "james.oconnor@turtle.app", "content": "Cardinals are so striking, lucky you! I've been seeing lots of blue jays lately"},
+    {"group": "Bird Watchers Club", "sender": "walter.scott@turtle.app", "content": "I set up a new bird bath in my garden and the activity has been wonderful"},
+    {"group": "Bird Watchers Club", "sender": "dorothy.harris@turtle.app", "content": "Bird baths are great, especially in the warmer months when water is scarce"},
+    {"group": "Bird Watchers Club", "sender": "james.oconnor@turtle.app", "content": "Has anyone tried the Merlin app for identifying bird calls? It's remarkable"},
+    {"group": "Bird Watchers Club", "sender": "walter.scott@turtle.app", "content": "Yes! I use it every morning on my walks, identified 12 species last week"},
+
+    # Music Lovers
+    {"group": "Music Lovers", "sender": "helen.martinez@turtle.app", "content": "Been listening to a lot of Frank Sinatra lately, such a timeless voice 🎵"},
+    {"group": "Music Lovers", "sender": "susan.baker@turtle.app", "content": "Classic choice! I love his live recordings from the 1950s"},
+    {"group": "Music Lovers", "sender": "walter.scott@turtle.app", "content": "Nothing beats the big band era in my opinion, such rich arrangements"},
+    {"group": "Music Lovers", "sender": "barbara.wilson@turtle.app", "content": "I've been rediscovering Ella Fitzgerald lately, her voice is just stunning"},
+    {"group": "Music Lovers", "sender": "helen.martinez@turtle.app", "content": "Ella and Frank together is pure magic, have you heard their duets?"},
+    {"group": "Music Lovers", "sender": "susan.baker@turtle.app", "content": "We should put together a playlist to share with the group!"},
+
+    # Pet Lovers
+    {"group": "Pet Lovers", "sender": "susan.baker@turtle.app", "content": "My cat Mittens turned 12 today, can't believe how fast time flies! 🐱"},
+    {"group": "Pet Lovers", "sender": "patricia.lee@turtle.app", "content": "Happy birthday Mittens! 12 years is such a wonderful milestone"},
+    {"group": "Pet Lovers", "sender": "carol.adams@turtle.app", "content": "My dog Max learned a new trick this week, he can now roll over on command!"},
+    {"group": "Pet Lovers", "sender": "nancy.patel@turtle.app", "content": "That's adorable Carol! Dogs are so smart when you take time to train them"},
+    {"group": "Pet Lovers", "sender": "susan.baker@turtle.app", "content": "Mittens just knocked my coffee off the table, classic cat behavior 😄"},
+    {"group": "Pet Lovers", "sender": "patricia.lee@turtle.app", "content": "Haha! They always look so innocent right after causing chaos"},
+
+    # Walking Club
+    {"group": "Walking Club", "sender": "james.oconnor@turtle.app", "content": "Did 5 miles this morning along the river trail, beautiful weather out there!"},
+    {"group": "Walking Club", "sender": "dorothy.harris@turtle.app", "content": "That trail is lovely this time of year, the wildflowers are blooming"},
+    {"group": "Walking Club", "sender": "frank.nguyen@turtle.app", "content": "I've been doing the park loop every morning before breakfast, very refreshing"},
+    {"group": "Walking Club", "sender": "nancy.patel@turtle.app", "content": "I joined a new walking route last week, found some great hidden paths"},
+    {"group": "Walking Club", "sender": "james.oconnor@turtle.app", "content": "We should organize a group walk sometime, more fun with company!"},
+    {"group": "Walking Club", "sender": "dorothy.harris@turtle.app", "content": "I would love that, maybe Saturday morning when the weather is nice?"},
+
+    # Chess & Card Games Club
+    {"group": "Chess & Card Games Club", "sender": "robert.chen@turtle.app", "content": "Great game last night everyone, really competitive match!"},
+    {"group": "Chess & Card Games Club", "sender": "frank.nguyen@turtle.app", "content": "That endgame was intense Robert, you had me worried for a moment"},
+    {"group": "Chess & Card Games Club", "sender": "george.murphy@turtle.app", "content": "I've been studying the Sicilian Defense this week, ready to try it out"},
+    {"group": "Chess & Card Games Club", "sender": "robert.chen@turtle.app", "content": "Dangerous opening George, looking forward to the challenge!"},
+    {"group": "Chess & Card Games Club", "sender": "frank.nguyen@turtle.app", "content": "Should we try a tournament format next month? Round robin style?"},
+    {"group": "Chess & Card Games Club", "sender": "george.murphy@turtle.app", "content": "Excellent idea, I'll put together a schedule if everyone is interested"},
+
+    # Painting & Art Circle
+    {"group": "Painting & Art Circle", "sender": "helen.martinez@turtle.app", "content": "Started a new watercolor landscape this week, mountains and fog"},
+    {"group": "Painting & Art Circle", "sender": "patricia.lee@turtle.app", "content": "Watercolor is so beautiful but so challenging! I admire your patience Helen"},
+    {"group": "Painting & Art Circle", "sender": "carol.adams@turtle.app", "content": "I've been working on portraits lately, trying to capture expressions"},
+    {"group": "Painting & Art Circle", "sender": "nancy.patel@turtle.app", "content": "Portraits are so personal and meaningful, would love to see yours Carol!"},
+    {"group": "Painting & Art Circle", "sender": "helen.martinez@turtle.app", "content": "We should do a virtual art show and share our recent work with each other"},
+    {"group": "Painting & Art Circle", "sender": "patricia.lee@turtle.app", "content": "What a wonderful idea! I'll start organizing something for next month 🎨"},
+]
+
 
 def seed():
     db = SessionLocal()
@@ -284,9 +390,11 @@ def seed():
             group_map[g["name"]] = group
 
         # Create users
+        user_map = {}
         for u in USERS:
             existing = db.query(User).filter(User.email == u["email"]).first()
             if existing:
+                user_map[u["email"]] = existing
                 continue
 
             user = User(
@@ -296,6 +404,7 @@ def seed():
             )
             db.add(user)
             db.flush()
+            user_map[u["email"]] = user
 
             profile = Profile(
                 user_id=user.id,
@@ -317,10 +426,28 @@ def seed():
                     )
                     db.add(membership)
 
+        db.flush()
+
+        # Create messages
+        for i, m in enumerate(MESSAGES):
+            group = group_map.get(m["group"])
+            sender = user_map.get(m["sender"])
+            if group and sender:
+                msg = Message(
+                    group_id=group.id,
+                    sender_id=sender.id,
+                    content=m["content"],
+                    is_flagged=m.get("flagged", False),
+                    flag_reason=m.get("flag_reason", None),
+                    created_at=datetime.utcnow() - timedelta(hours=len(MESSAGES) - i),
+                )
+                db.add(msg)
+
         db.commit()
         print("Seeded successfully!")
         print(f"  Created {len(GROUPS)} groups")
         print(f"  Created {len(USERS)} users")
+        print(f"  Created {len(MESSAGES)} messages")
     finally:
         db.close()
 

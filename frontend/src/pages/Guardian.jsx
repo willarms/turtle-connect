@@ -27,10 +27,8 @@ export default function Guardian() {
 
   useEffect(() => {
     if (!user?.id) return
-  
     let mounted = true
     setLoading(true)
-  
     const fetchData = async () => {
       try {
         const res = await getGuardianDashboard(user.id)
@@ -39,11 +37,8 @@ export default function Guardian() {
         if (mounted) setLoading(false)
       }
     }
-  
     fetchData()
-  
     const interval = setInterval(fetchData, 30000)
-  
     return () => {
       mounted = false
       clearInterval(interval)
@@ -58,7 +53,7 @@ export default function Guardian() {
       clearTimeout(sentTimer.current)
       sentTimer.current = setTimeout(() => setReportSent(false), 4000)
     } catch {
-      // error handled silently — backend will log
+      // error handled silently
     } finally {
       setSending(false)
     }
@@ -87,12 +82,21 @@ export default function Guardian() {
 
         {/* Alerts */}
         {data?.alerts?.length > 0 && (
-          <div className="bg-white border border-[var(--turtle-border)] rounded-xl p-4 mb-6">
-            <h2 className="font-semibold text-[var(--turtle-text)] mb-2 text-base flex items-center gap-1">
-              ⚠ Alerts &amp; Notifications
+          <div className="bg-white border border-red-200 rounded-xl p-4 mb-6">
+            <h2 className="font-semibold text-red-600 mb-3 text-base flex items-center gap-1">
+              ⚠️ Safety Alerts ({data.alerts.length})
             </h2>
             {data.alerts.map((a, i) => (
-              <p key={i} className="text-base text-red-600">{a}</p>
+              <div key={i} className="mb-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                    {a.type === 'meeting_report' ? '📋 Meeting Report' : '🚨 Flagged Message'}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-red-600">{a.reason}</p>
+                <p className="text-sm text-gray-600 mt-1">"{a.message}"</p>
+                <p className="text-xs text-gray-400 mt-1">{a.group} · {new Date(a.created_at).toLocaleString()}</p>
+              </div>
             ))}
           </div>
         )}
