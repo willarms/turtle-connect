@@ -8,15 +8,18 @@ cd backend && venv/bin/uvicorn app.main:socket_app --reload
 python3 -m venv venv   ← create new virtual enviornmetn 
 source venv/bin/activate ← activate it 
 pip install -r requirements.txt ← reinstall dependencies 
-python seed.py <-- initialize database
-
-The backend was built using FastAPI with SQLAlchemy as the ORM and SQLite as the local development database. The database configuration was defined in database.py, and the application was set to use a local file-based database (turtle.db) via a configurable database_url. If 
+pip install "python-socketio[asgi]" ← backend install dependencies
 
 'alembic upgrade head' in backend folder to create all tables defined in the migrations
+
+For seed.py (to populate our seed data, like groups and users) → source venv/bin/activate, pip install sqlalchemy, pip install fastapi uvicorn python-dotenv sqlalchemy psycopg2-binary, rm turtle.db, python3 seed.py
+
+The backend was built using FastAPI with SQLAlchemy as the ORM and SQLite as the local development database. The database configuration was defined in database.py, and the application was set to use a local file-based database (turtle.db) via a configurable database_url. If 
 
 # Terminal 2 — frontend
 cd frontend && npm run dev
 
+npm install socket.io-client  ← frontend install dependencies
 Also note that database is included in .gitignore, so any accounts stored in database locally will not persist across devices
 
 # General 
