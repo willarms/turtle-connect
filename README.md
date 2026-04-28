@@ -3,7 +3,7 @@ Human-AI Collaboration Group Project
 
 Instructions to run:
 # Terminal 1 — backend
-cd backend && venv/bin/uvicorn app.main:app --reload
+cd backend && venv/bin/uvicorn app.main:socket_app --reload
 
 python3 -m venv venv   ← create new virtual enviornmetn 
 source venv/bin/activate ← activate it 
