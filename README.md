@@ -29,13 +29,9 @@ ensure .env file in backend folder has following keys:
 SECRET_KEY=random-key
 DATABASE_URL=sqlite:///./turtle.db
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
-
-# Google OAuth 2.0
 GOOGLE_CLIENT_ID=540705292449-r6aiu28gr82kqj7u21qup5aleqnvl1qr.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=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
 GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
-
-# Resend email
 RESEND_API_KEY=re_F9Bepzei_Q4uvz8cMa9NEZRLKjtDL5wvU
 EMAIL_FROM=Turtle Connect <onboarding@resend.dev>
 
