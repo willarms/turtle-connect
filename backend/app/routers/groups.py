@@ -287,16 +287,38 @@ async def report_group(
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
 
-    html = build_group_report_html({
-        "group_name": group.name,
-        "reason": payload.get("reason"),
-        "details": payload.get("details"),
-    })
+    # Save structured report to DB (post-meeting modal flags)
+    flag_password = bool(payload.get("flag_password_request", False))
+    flag_language = bool(payload.get("flag_offensive_language", False))
+    flag_confusing = bool(payload.get("flag_confusing", False))
+    notes = (payload.get("additional_notes") or payload.get("details") or "").strip() or None
 
-    await send_email(
-        to="fdougher@nd.edu",   # or admin email
-        subject="Group Safety Report",
-        html=html
-    )
+    db.add(MeetingReport(
+        user_id=current_user.id,
+        group_id=group_id,
+        flag_password_request=flag_password,
+        flag_offensive_language=flag_language,
+        flag_confusing=flag_confusing,
+        additional_notes=notes,
+    ))
+    db.commit()
+
+    # Send admin email if any flags are raised or a reason was given
+    any_flagged = flag_password or flag_language or flag_confusing or notes or payload.get("reason")
+    if any_flagged:
+        try:
+            html = build_group_report_html({
+                "group_name": group.name,
+                "reason": payload.get("reason"),
+                "details": notes,
+            })
+            await send_email(
+                to="fdougher@nd.edu",
+                subject="Group Safety Report",
+                html=html,
+            )
+        except Exception:
+            # Email delivery failure is non-critical — report is already saved to DB
+            pass
 
     return {"success": True}

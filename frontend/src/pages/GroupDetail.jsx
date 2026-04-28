@@ -95,7 +95,7 @@ export default function GroupDetail() {
     } catch {
       // fail silently — not critical
     }
-    // Reset report flags and show the safety report step
+    // Reset report flags and show post-meeting safety report
     setReportFlags({
       flag_password_request: false,
       flag_offensive_language: false,
@@ -110,7 +110,7 @@ export default function GroupDetail() {
     try {
       await submitMeetingReport(id, reportFlags)
     } catch {
-      // fail silently — report submission is non-critical
+      // fail silently — not critical
     } finally {
       setReportSubmitting(false)
       setShowMeetingReport(false)
@@ -256,7 +256,7 @@ export default function GroupDetail() {
               {[
                 { key: 'flag_password_request', label: 'Someone asked for my password or login information' },
                 { key: 'flag_offensive_language', label: 'Someone used offensive or upsetting language' },
-                { key: 'flag_confusing',          label: 'Something happened that I didn\'t understand' },
+                { key: 'flag_confusing',          label: "Something happened that I didn't understand" },
               ].map(({ key, label }) => (
                 <label
                   key={key}
