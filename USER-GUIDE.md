@@ -161,6 +161,18 @@ Log in with any of the three demo accounts (password is `password123` for all):
 
 ---
 
+## AI-Powered Features
+
+Turtle Connect uses Groq AI (llama-3.3-70b) for two core features:
+
+**AI Group Matching**
+When a new user completes onboarding, their interests and personality quiz answers are sent to Groq, which ranks and returns the best matching groups for them. You can watch this happen live in the running backend terminal when groups are loaded.
+
+**AI Safety Screener**
+Every chat message is automatically scanned by Groq for scam patterns including password requests, financial solicitation, off-platform pressure, and manipulation. Flagged messages appear in the Guardian Dashboard under Safety Alerts with the specific reason.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
