@@ -4,76 +4,38 @@ import { useAuth } from '../context/AuthContext'
 import { updateProfile } from '../services/api'
 
 const QUESTIONS = [
-  {
-    question: 'When facing a problem, I tend to:',
-    options: [
-      'Focus on doing the right thing and fixing what\'s wrong',
-      'Think about how to help others through it',
-      'Look for the most efficient solution to succeed',
-      'Reflect on my feelings and the deeper meaning',
-      'Step back and analyze it objectively',
-      'Consider all possible risks and outcomes',
-      'Look for the positive opportunities it presents',
-      'Take charge and confront it directly',
-      'Try to keep the peace and avoid conflict',
-    ],
-  },
-  {
-    question: 'In social situations, I usually:',
-    options: [
-      'Listen more than I speak',
-      'Make sure everyone feels included',
-      'Get straight to the point',
-      'Share stories and personal experiences',
-      'Ask thoughtful questions',
-      'Plan ahead before speaking',
-      'Keep things light and positive',
-      'Take the lead',
-      'Go along with what others prefer',
-    ],
-  },
-  {
-    question: 'My ideal afternoon would be:',
-    options: [
-      'Volunteering in the community',
-      'Spending time with close friends or family',
-      'Working on a personal project or goal',
-      'Reading, journaling, or creating something',
-      'Learning something new',
-      'Organizing and planning',
-      'Trying something fun and spontaneous',
-      'Taking on a challenge',
-      'Relaxing at home peacefully',
-    ],
-  },
-  {
-    question: 'When I meet someone new, I tend to:',
-    options: [
-      'Share my values openly',
-      'Focus on finding common ground',
-      'Keep it professional and efficient',
-      'Look for a deep personal connection',
-      'Ask lots of questions to understand them',
-      'Hold back until I know them better',
-      'Bring energy and enthusiasm',
-      'Take initiative in the conversation',
-      'Let them lead the conversation',
-    ],
-  },
-  {
-    question: 'What matters most to me in a group or community?',
-    options: [
-      'Shared values and integrity',
-      'Warmth and care for one another',
-      'Getting things done together',
-      'Meaningful, authentic interactions',
-      'Learning and intellectual growth',
-      'Safety and reliability',
-      'Fun and shared enjoyment',
-      'Clear leadership and direction',
-      'Harmony and avoiding conflict',
-    ],
-  },
+  { id: "q1", question: "I am talkative", trait: "extraversion", reverse: false },
+  { id: "q2", question: "I am reserved", trait: "extraversion", reverse: true },
+  { id: "q3", question: "I am full of energy", trait: "extraversion", reverse: false },
+  { id: "q4", question: "I tend to be quiet", trait: "extraversion", reverse: true },
+
+  { id: "q5", question: "I am helpful and unselfish with others", trait: "agreeableness", reverse: false },
+  { id: "q6", question: "I tend to find fault with others", trait: "agreeableness", reverse: true },
+  { id: "q7", question: "I have a forgiving nature", trait: "agreeableness", reverse: false },
+  { id: "q8", question: "I am sometimes rude to others", trait: "agreeableness", reverse: true },
+
+  { id: "q9", question: "I do a thorough job", trait: "conscientiousness", reverse: false },
+  { id: "q10", question: "I can be somewhat careless", trait: "conscientiousness", reverse: true },
+  { id: "q11", question: "I am reliable", trait: "conscientiousness", reverse: false },
+  { id: "q12", question: "I tend to be disorganized", trait: "conscientiousness", reverse: true },
+
+  { id: "q13", question: "I get nervous easily", trait: "neuroticism", reverse: false },
+  { id: "q14", question: "I am relaxed and handle stress well", trait: "neuroticism", reverse: true },
+  { id: "q15", question: "I worry a lot", trait: "neuroticism", reverse: false },
+  { id: "q16", question: "I am emotionally stable", trait: "neuroticism", reverse: true },
+
+  { id: "q17", question: "I am curious about many different things", trait: "openness", reverse: false },
+  { id: "q18", question: "I have an active imagination", trait: "openness", reverse: false },
+  { id: "q19", question: "I am not interested in abstract ideas", trait: "openness", reverse: true },
+  { id: "q20", question: "I enjoy thinking about complex problems", trait: "openness", reverse: false },
+]
+
+const OPTIONS = [
+  { label: "Strongly disagree", value: 1 },
+  { label: "Disagree", value: 2 },
+  { label: "Neutral", value: 3 },
+  { label: "Agree", value: 4 },
+  { label: "Strongly agree", value: 5 },
 ]
 
 export default function Assessment() {
@@ -86,10 +48,10 @@ export default function Assessment() {
   const { refreshUser } = useAuth()
   const navigate = useNavigate()
 
-  const selectAnswer = (option) => {
-    setAnswers(prev => ({ ...prev, [current]: option }))
-    setError('')
-  }
+  const selectAnswer = (value) => {
+  setAnswers(prev => ({ ...prev, [q.id]: value }))
+  setError('')
+}
 
   const exitToProfile = () => {
     navigate('/profile')
@@ -100,7 +62,7 @@ export default function Assessment() {
   }
 
   const next = async () => {
-    if (!answers[current]) {
+    if (!answers[q.id]) {
       setError('Please select an option before continuing.')
       return
     }
@@ -128,9 +90,29 @@ export default function Assessment() {
         return acc
       }, {})
 
-      await updateProfile({
-        personality_scores: sortedScores,
-        onboarding_complete: true,
+      // await updateProfile({
+      //   personality_scores: sortedScores,
+      //   onboarding_complete: true,
+      // })
+
+      const token = localStorage.getItem("token")
+
+      // 1. Send quiz answers to backend
+      await fetch("http://localhost:8000/api/personality/big5", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ answers }),
+      })
+
+      // 2. Run matching (Groq + group assignment)
+      await fetch("http://localhost:8000/api/match", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       await refreshUser()
@@ -147,7 +129,7 @@ export default function Assessment() {
 
   const progress = ((current + 1) / QUESTIONS.length) * 100
   const q = QUESTIONS[current]
-  const selected = answers[current]
+  const selected = answers[q.id]
 
   return (
     <div className="min-h-screen bg-[var(--turtle-bg)] py-10 px-4 relative">
@@ -232,17 +214,17 @@ export default function Assessment() {
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
         <div className="space-y-2 mb-6">
-          {q.options.map(option => (
+          {OPTIONS.map(option => (
             <button
-              key={option}
-              onClick={() => selectAnswer(option)}
+              key={option.value}
+              onClick={() => selectAnswer(option.value)}
               className={`w-full text-left p-4 rounded-lg border transition ${
-                selected === option
+                selected === option.value
                   ? 'border-[var(--turtle-green)] bg-[var(--turtle-green-light)]'
                   : 'border-[var(--turtle-border)] hover:border-gray-300'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
