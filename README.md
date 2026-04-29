@@ -45,3 +45,14 @@ SELECT id, email, name FROM users; ---> check valid user account exists in the d
 INSERT INTO activities (user_id, group_id, activity_type, duration_minutes, created_at)
 VALUES (1, 1, 'call', 12, datetime('now')); ---> mannually enter user data
 
+#Googlelogin returns to homepage error 
+( 500 Internal Server Error - Exception in ASGI application, schema mismatch)
+rm turtle.db  <-- remove database
+rm -rf alembic/versions/*   <-- remove fault versions 
+alembic revision --autogenerate -m "initial schema" <-- Recreate initial migration
+alembic upgrade head <-- apply it
+uvicorn app.main:socket_app --reload <-- restart backend
+
+
+
+
