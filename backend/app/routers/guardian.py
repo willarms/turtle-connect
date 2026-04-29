@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.activity import Activity
-from app.models.group import GroupMembership
+from app.models.group import Group, GroupMembership
+from app.models.message import Message
+from app.models.report import MeetingReport
 from app.models.user import GuardianLink, User
 from app.services.auth import get_user_by_id
 from app.services.dashboard import build_dashboard_data
@@ -17,7 +19,6 @@ router = APIRouter(prefix="/api/guardian", tags=["guardian"])
 
 
 async def _sync_meet_activities(senior: User, db: Session, since: datetime) -> None:
-    """Pull completed Google Meet sessions for the senior and write Activity rows."""
     memberships = db.query(GroupMembership).filter_by(user_id=senior.id).all()
     since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -29,7 +30,6 @@ async def _sync_meet_activities(senior: User, db: Session, since: datetime) -> N
         print(f"[meet-sync] checking group {group.id} ({group.name}), meet_url={group.google_meet_url}, host_id={group.meet_host_user_id}")
         host = db.query(User).filter_by(id=group.meet_host_user_id).first() if group.meet_host_user_id else None
         if not host or not host.google_refresh_token:
-            # Fall back to any group member with a refresh token
             for membership in group.memberships:
                 candidate = membership.user
                 if candidate.google_refresh_token:
@@ -46,12 +46,10 @@ async def _sync_meet_activities(senior: User, db: Session, since: datetime) -> N
         records = await fetch_meet_activities(access_token, group.google_meet_url, since_iso)
 
         for rec in records:
-            # Skip if already synced
             existing = db.query(Activity).filter_by(meet_conference_id=rec["conference_id"]).first()
             if existing:
                 continue
 
-            # Only record if the senior was a participant
             senior_google_id = senior.google_id
             if senior_google_id and senior_google_id not in rec["participant_google_ids"]:
                 continue
@@ -82,7 +80,6 @@ async def get_dashboard(
     now = datetime.utcnow()
     week_ago = now - timedelta(days=7)
 
-    # Silently sync any new Google Meet sessions before building the dashboard
     try:
         await _sync_meet_activities(senior, db, week_ago)
     except Exception as exc:
@@ -150,6 +147,61 @@ async def get_dashboard(
             "created_at": a.created_at.isoformat(),
         })
 
+    # Flagged messages alerts
+    flagged_messages = (
+        db.query(Message)
+        .filter(Message.sender_id == senior_id, Message.is_flagged == True)
+        .order_by(Message.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    alerts = []
+    for m in flagged_messages:
+        group = db.query(Group).filter(Group.id == m.group_id).first()
+        alerts.append({
+            "type": "flagged_message",
+            "message": m.content,
+            "reason": m.flag_reason,
+            "group": group.name if group else "Unknown",
+            "created_at": m.created_at.isoformat(),
+        })
+
+    # Meeting report alerts
+    meeting_reports = (
+        db.query(MeetingReport)
+        .filter(MeetingReport.user_id == senior_id)
+        .filter(
+            (MeetingReport.flag_password_request == True) |
+            (MeetingReport.flag_offensive_language == True) |
+            (MeetingReport.flag_confusing == True) |
+            (MeetingReport.additional_notes != None)
+        )
+        .order_by(MeetingReport.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    for r in meeting_reports:
+        group = db.query(Group).filter(Group.id == r.group_id).first()
+        flags = []
+        if r.flag_password_request:
+            flags.append("Someone asked for password/login info")
+        if r.flag_offensive_language:
+            flags.append("Offensive or upsetting language")
+        if r.flag_confusing:
+            flags.append("Something confusing happened")
+        alerts.append({
+            "type": "meeting_report",
+            "message": r.additional_notes or "No additional notes",
+            "reason": ", ".join(flags) if flags else "User submitted a report",
+            "group": group.name if group else "Unknown",
+            "created_at": r.created_at.isoformat(),
+        })
+
+    # Sort all alerts by date newest first
+    alerts.sort(key=lambda x: x["created_at"], reverse=True)
+
     return {
         "senior_name": senior.name,
         "total_calls": len(calls),
@@ -159,7 +211,7 @@ async def get_dashboard(
         "weekly_activity": weekly_activity,
         "group_participation": group_participation,
         "recent_activity": recent_activity,
-        "alerts": [],
+        "alerts": alerts,
     }
 
 
