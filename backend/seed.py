@@ -1,6 +1,10 @@
 """
-Seed script — populates the database with test users and sample groups.
-Run from the backend directory: python seed.py
+Seed script — populates the database with demo users, groups, chat messages,
+activity logs, a scheduled meeting, and a guardian link for professor testing.
+
+Usage:
+    python seed.py           # seed if empty
+    python seed.py --reset   # wipe everything and re-seed
 """
 import sys
 import os
@@ -10,7 +14,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from app.database import SessionLocal, engine, Base
 from app.models import Group, GroupMembership, User, Profile
+from app.models.activity import Activity
 from app.models.message import Message
+from app.models.report import MeetingReport
+from app.models.user import GuardianLink
 from app.services.auth import hash_password
 
 Base.metadata.create_all(bind=engine)
@@ -20,6 +27,7 @@ GROUPS = [
         "name": "Garden Enthusiasts",
         "description": "Connect with fellow gardeners to share tips, seeds, and stories from our gardens.",
         "topics": ["Gardening", "Plants", "Outdoors"],
+        "schedule_meeting": True,
     },
     {
         "name": "Yarn Crafters Circle",
@@ -97,6 +105,7 @@ USERS = [
             "q5": "Shared values and integrity",
         },
         "groups": ["Garden Enthusiasts", "Yarn Crafters Circle", "Book Club Friends", "Cooking & Baking Circle"],
+        "guardian": True,
     },
     {
         "email": "dorothy.harris@turtle.app",
@@ -111,6 +120,7 @@ USERS = [
             "q5": "Learning and intellectual growth",
         },
         "groups": ["Garden Enthusiasts", "Bird Watchers Club", "Walking Club", "Photography Circle"],
+        "guardian": False,
     },
     {
         "email": "helen.martinez@turtle.app",
@@ -125,6 +135,7 @@ USERS = [
             "q5": "Meaningful, authentic interactions",
         },
         "groups": ["Yarn Crafters Circle", "Painting & Art Circle", "Music Lovers"],
+        "guardian": False,
     },
     {
         "email": "robert.chen@turtle.app",
@@ -139,6 +150,7 @@ USERS = [
             "q5": "Getting things done together",
         },
         "groups": ["Chess & Card Games Club", "Book Club Friends", "Fishing Friends"],
+        "guardian": False,
     },
     {
         "email": "barbara.wilson@turtle.app",
@@ -153,6 +165,7 @@ USERS = [
             "q5": "Fun and shared enjoyment",
         },
         "groups": ["Cooking & Baking Circle", "Classic Movie Buffs", "Music Lovers"],
+        "guardian": False,
     },
     {
         "email": "james.oconnor@turtle.app",
@@ -167,6 +180,7 @@ USERS = [
             "q5": "Warmth and care for one another",
         },
         "groups": ["Fishing Friends", "Walking Club", "Bird Watchers Club", "Photography Circle"],
+        "guardian": False,
     },
     {
         "email": "patricia.lee@turtle.app",
@@ -181,6 +195,7 @@ USERS = [
             "q5": "Meaningful, authentic interactions",
         },
         "groups": ["Painting & Art Circle", "Book Club Friends", "Classic Movie Buffs", "Pet Lovers"],
+        "guardian": False,
     },
     {
         "email": "frank.nguyen@turtle.app",
@@ -195,6 +210,7 @@ USERS = [
             "q5": "Safety and reliability",
         },
         "groups": ["Chess & Card Games Club", "Fishing Friends", "Walking Club"],
+        "guardian": False,
     },
     {
         "email": "susan.baker@turtle.app",
@@ -209,6 +225,7 @@ USERS = [
             "q5": "Warmth and care for one another",
         },
         "groups": ["Music Lovers", "Pet Lovers", "Cooking & Baking Circle", "Garden Enthusiasts"],
+        "guardian": False,
     },
     {
         "email": "walter.scott@turtle.app",
@@ -223,6 +240,7 @@ USERS = [
             "q5": "Clear leadership and direction",
         },
         "groups": ["Classic Movie Buffs", "Music Lovers", "Book Club Friends", "Bird Watchers Club"],
+        "guardian": False,
     },
     {
         "email": "carol.adams@turtle.app",
@@ -237,6 +255,7 @@ USERS = [
             "q5": "Shared values and integrity",
         },
         "groups": ["Yarn Crafters Circle", "Painting & Art Circle", "Pet Lovers", "Cooking & Baking Circle"],
+        "guardian": False,
     },
     {
         "email": "nancy.patel@turtle.app",
@@ -251,6 +270,7 @@ USERS = [
             "q5": "Fun and shared enjoyment",
         },
         "groups": ["Photography Circle", "Painting & Art Circle", "Walking Club", "Pet Lovers"],
+        "guardian": False,
     },
     {
         "email": "george.murphy@turtle.app",
@@ -265,6 +285,7 @@ USERS = [
             "q5": "Learning and intellectual growth",
         },
         "groups": ["Chess & Card Games Club", "Book Club Friends", "Classic Movie Buffs"],
+        "guardian": False,
     },
 ]
 
@@ -289,7 +310,6 @@ MESSAGES = [
     {"group": "Classic Movie Buffs", "sender": "barbara.wilson@turtle.app", "content": "Has anyone seen the new 4K restoration? The picture quality is stunning"},
     {"group": "Classic Movie Buffs", "sender": "george.murphy@turtle.app", "content": "I watched it last month, the restored version is breathtaking"},
     {"group": "Classic Movie Buffs", "sender": "walter.scott@turtle.app", "content": "Should we do a virtual watch party next week?"},
-    {"group": "Classic Movie Buffs", "sender": "patricia.lee@turtle.app", "content": "I would absolutely love that, count me in!"},
 
     # Fishing Friends
     {"group": "Fishing Friends", "sender": "james.oconnor@turtle.app", "content": "Caught a beautiful 4 pound bass at the lake yesterday morning!"},
@@ -297,7 +317,6 @@ MESSAGES = [
     {"group": "Fishing Friends", "sender": "james.oconnor@turtle.app", "content": "Plastic worms worked great, the bass were really active near the reeds"},
     {"group": "Fishing Friends", "sender": "frank.nguyen@turtle.app", "content": "Early morning is always the best time, water is calm and fish are hungry"},
     {"group": "Fishing Friends", "sender": "robert.chen@turtle.app", "content": "Anyone want to organize a group fishing trip this month?"},
-    {"group": "Fishing Friends", "sender": "james.oconnor@turtle.app", "content": "I'm in! There's a great spot about 20 minutes from town"},
 
     # Book Club Friends
     {"group": "Book Club Friends", "sender": "robert.chen@turtle.app", "content": "Has everyone finished the first three chapters of our current book?"},
@@ -305,15 +324,13 @@ MESSAGES = [
     {"group": "Book Club Friends", "sender": "walter.scott@turtle.app", "content": "I thought the author did a brilliant job developing the main character"},
     {"group": "Book Club Friends", "sender": "george.murphy@turtle.app", "content": "Agreed, I couldn't put it down. Very well written prose."},
     {"group": "Book Club Friends", "sender": "robert.chen@turtle.app", "content": "Looking forward to our discussion on Thursday evening!"},
-    {"group": "Book Club Friends", "sender": "patricia.lee@turtle.app", "content": "Me too, I have so many thoughts to share about the themes"},
 
-    # Cooking & Baking Circle — includes flagged message
+    # Cooking & Baking Circle — includes a flagged message for safety demo
     {"group": "Cooking & Baking Circle", "sender": "barbara.wilson@turtle.app", "content": "Made my grandmother's famous apple pie recipe last night, the whole house smelled amazing!"},
     {"group": "Cooking & Baking Circle", "sender": "susan.baker@turtle.app", "content": "That sounds absolutely delicious Barbara!"},
     {"group": "Cooking & Baking Circle", "sender": "carol.adams@turtle.app", "content": "Can you share the recipe? I love a good homemade apple pie 🥧"},
     {"group": "Cooking & Baking Circle", "sender": "barbara.wilson@turtle.app", "content": "Of course! I use Granny Smith apples with cinnamon and a pinch of nutmeg"},
-    {"group": "Cooking & Baking Circle", "sender": "susan.baker@turtle.app", "content": "I tried a new banana bread recipe yesterday, turned out perfect on the first try!"},
-    {"group": "Cooking & Baking Circle", "sender": "barbara.wilson@turtle.app", "content": "Send me your password and wire me $200 in gift cards to get my secret recipes", "flagged": True, "flag_reason": "Message requests password and financial transfer — likely a scam attempt."},
+    {"group": "Cooking & Baking Circle", "sender": "susan.baker@turtle.app", "content": "Send me your password and wire me $200 in gift cards to get my secret recipes", "flagged": True, "flag_reason": "Message requests password and financial transfer — likely a scam attempt."},
 
     # Photography Circle
     {"group": "Photography Circle", "sender": "dorothy.harris@turtle.app", "content": "Took some wonderful shots of the sunrise at the park this morning"},
@@ -321,104 +338,42 @@ MESSAGES = [
     {"group": "Photography Circle", "sender": "nancy.patel@turtle.app", "content": "I've been experimenting with close up flower shots this week"},
     {"group": "Photography Circle", "sender": "dorothy.harris@turtle.app", "content": "Macro photography is so rewarding, the detail you can capture is incredible"},
     {"group": "Photography Circle", "sender": "nancy.patel@turtle.app", "content": "Should we do a photo challenge this month? Everyone picks a theme!"},
-    {"group": "Photography Circle", "sender": "james.oconnor@turtle.app", "content": "Love that idea! I vote for nature as the theme"},
 
     # Bird Watchers Club
-    {"group": "Bird Watchers Club", "sender": "dorothy.harris@turtle.app", "content": "Spotted a beautiful red cardinal at my feeder this morning! "},
+    {"group": "Bird Watchers Club", "sender": "dorothy.harris@turtle.app", "content": "Spotted a beautiful red cardinal at my feeder this morning!"},
     {"group": "Bird Watchers Club", "sender": "james.oconnor@turtle.app", "content": "Cardinals are so striking, lucky you! I've been seeing lots of blue jays lately"},
     {"group": "Bird Watchers Club", "sender": "walter.scott@turtle.app", "content": "I set up a new bird bath in my garden and the activity has been wonderful"},
-    {"group": "Bird Watchers Club", "sender": "dorothy.harris@turtle.app", "content": "Bird baths are great, especially in the warmer months when water is scarce"},
-    {"group": "Bird Watchers Club", "sender": "james.oconnor@turtle.app", "content": "Has anyone tried the Merlin app for identifying bird calls? It's remarkable"},
-    {"group": "Bird Watchers Club", "sender": "walter.scott@turtle.app", "content": "Yes! I use it every morning on my walks, identified 12 species last week"},
+    {"group": "Bird Watchers Club", "sender": "dorothy.harris@turtle.app", "content": "Has anyone tried the Merlin app for identifying bird calls? It's remarkable"},
 
     # Music Lovers
     {"group": "Music Lovers", "sender": "helen.martinez@turtle.app", "content": "Been listening to a lot of Frank Sinatra lately, such a timeless voice 🎵"},
     {"group": "Music Lovers", "sender": "susan.baker@turtle.app", "content": "Classic choice! I love his live recordings from the 1950s"},
     {"group": "Music Lovers", "sender": "walter.scott@turtle.app", "content": "Nothing beats the big band era in my opinion, such rich arrangements"},
     {"group": "Music Lovers", "sender": "barbara.wilson@turtle.app", "content": "I've been rediscovering Ella Fitzgerald lately, her voice is just stunning"},
-    {"group": "Music Lovers", "sender": "helen.martinez@turtle.app", "content": "Ella and Frank together is pure magic, have you heard their duets?"},
-    {"group": "Music Lovers", "sender": "susan.baker@turtle.app", "content": "We should put together a playlist to share with the group!"},
 
     # Pet Lovers
     {"group": "Pet Lovers", "sender": "susan.baker@turtle.app", "content": "My cat Mittens turned 12 today, can't believe how fast time flies! 🐱"},
     {"group": "Pet Lovers", "sender": "patricia.lee@turtle.app", "content": "Happy birthday Mittens! 12 years is such a wonderful milestone"},
     {"group": "Pet Lovers", "sender": "carol.adams@turtle.app", "content": "My dog Max learned a new trick this week, he can now roll over on command!"},
     {"group": "Pet Lovers", "sender": "nancy.patel@turtle.app", "content": "That's adorable Carol! Dogs are so smart when you take time to train them"},
-    {"group": "Pet Lovers", "sender": "susan.baker@turtle.app", "content": "Mittens just knocked my coffee off the table, classic cat behavior 😄"},
-    {"group": "Pet Lovers", "sender": "patricia.lee@turtle.app", "content": "Haha! They always look so innocent right after causing chaos"},
 
     # Walking Club
     {"group": "Walking Club", "sender": "james.oconnor@turtle.app", "content": "Did 5 miles this morning along the river trail, beautiful weather out there!"},
     {"group": "Walking Club", "sender": "dorothy.harris@turtle.app", "content": "That trail is lovely this time of year, the wildflowers are blooming"},
     {"group": "Walking Club", "sender": "frank.nguyen@turtle.app", "content": "I've been doing the park loop every morning before breakfast, very refreshing"},
-    {"group": "Walking Club", "sender": "nancy.patel@turtle.app", "content": "I joined a new walking route last week, found some great hidden paths"},
-    {"group": "Walking Club", "sender": "james.oconnor@turtle.app", "content": "We should organize a group walk sometime, more fun with company!"},
-    {"group": "Walking Club", "sender": "dorothy.harris@turtle.app", "content": "I would love that, maybe Saturday morning when the weather is nice?"},
+    {"group": "Walking Club", "sender": "nancy.patel@turtle.app", "content": "We should organize a group walk sometime, more fun with company!"},
 
     # Chess & Card Games Club
     {"group": "Chess & Card Games Club", "sender": "robert.chen@turtle.app", "content": "Great game last night everyone, really competitive match!"},
     {"group": "Chess & Card Games Club", "sender": "frank.nguyen@turtle.app", "content": "That endgame was intense Robert, you had me worried for a moment"},
     {"group": "Chess & Card Games Club", "sender": "george.murphy@turtle.app", "content": "I've been studying the Sicilian Defense this week, ready to try it out"},
-    {"group": "Chess & Card Games Club", "sender": "robert.chen@turtle.app", "content": "Dangerous opening George, looking forward to the challenge!"},
-    {"group": "Chess & Card Games Club", "sender": "frank.nguyen@turtle.app", "content": "Should we try a tournament format next month? Round robin style?"},
-    {"group": "Chess & Card Games Club", "sender": "george.murphy@turtle.app", "content": "Excellent idea, I'll put together a schedule if everyone is interested"},
+    {"group": "Chess & Card Games Club", "sender": "robert.chen@turtle.app", "content": "Should we try a tournament format next month? Round robin style?"},
 
     # Painting & Art Circle
     {"group": "Painting & Art Circle", "sender": "helen.martinez@turtle.app", "content": "Started a new watercolor landscape this week, mountains and fog"},
     {"group": "Painting & Art Circle", "sender": "patricia.lee@turtle.app", "content": "Watercolor is so beautiful but so challenging! I admire your patience Helen"},
     {"group": "Painting & Art Circle", "sender": "carol.adams@turtle.app", "content": "I've been working on portraits lately, trying to capture expressions"},
-    {"group": "Painting & Art Circle", "sender": "nancy.patel@turtle.app", "content": "Portraits are so personal and meaningful, would love to see yours Carol!"},
-    {"group": "Painting & Art Circle", "sender": "helen.martinez@turtle.app", "content": "We should do a virtual art show and share our recent work with each other"},
-    {"group": "Painting & Art Circle", "sender": "patricia.lee@turtle.app", "content": "What a wonderful idea! I'll start organizing something for next month 🎨"},
-]
-        "email": "margaret@turtle.app",
-        "name": "Margaret Thompson",
-        "password": "password123",
-        "interests": ["Gardening", "Knitting", "Movies", "Reading"],
-        "guardian": True,
-    },
-    {
-        "email": "henry@turtle.app",
-        "name": "Henry Kowalski",
-        "password": "password123",
-        "interests": ["Fishing", "Card Games", "Cooking"],
-        "guardian": False,
-    },
-    {
-        "email": "dorothy@turtle.app",
-        "name": "Dorothy Nguyen",
-        "password": "password123",
-        "interests": ["Books", "Photography", "Gardening", "Baking"],
-        "guardian": False,
-    },
-]
-
-# group index → list of user indices who are members
-MEMBERSHIPS = {
-    0: [0, 2],        # Garden Enthusiasts: Margaret, Dorothy
-    1: [0],           # Yarn Crafters: Margaret
-    2: [0, 1],        # Classic Movie Buffs: Margaret, Henry
-    3: [1],           # Fishing Friends: Henry
-    4: [0, 2],        # Book Club: Margaret, Dorothy
-    5: [1, 2],        # Cooking & Baking: Henry, Dorothy
-    6: [2],           # Photography Walkers: Dorothy
-    7: [1],           # Card & Board Game: Henry
-}
-
-# Chat messages: (group_index, user_index, content, minutes_ago)
-MESSAGES = [
-    # Garden Enthusiasts
-    (0, 2, "Good morning everyone! My tomatoes are finally coming in.", 120),
-    (0, 0, "Dorothy, that's wonderful! I had a great harvest last week too.", 115),
-    (0, 2, "Margaret, any tips for keeping the deer away this season?", 110),
-    (0, 0, "I've been using coffee grounds around the beds — seems to help!", 105),
-    (0, 2, "Oh I'll have to try that. Looking forward to our next chat 🌱", 100),
-
-    # Book Club Friends
-    (4, 0, "Has everyone finished the first three chapters of our book?", 200),
-    (4, 2, "Just finished last night — what a story so far!", 195),
-    (4, 0, "The part about the lighthouse really surprised me.", 190),
-    (4, 2, "Same! Can't wait to discuss. See you at our next meeting!", 185),
+    {"group": "Painting & Art Circle", "sender": "helen.martinez@turtle.app", "content": "We should do a virtual art show and share our recent work with each other 🎨"},
 ]
 
 
@@ -439,13 +394,6 @@ def reset_db(db):
 def seed():
     db = SessionLocal()
     try:
-        if db.query(Group).count() > 0:
-            print("Database already seeded. Skipping.")
-            return
-
-        # Create groups
-        group_map = {}
-        for g in GROUPS:
         do_reset = "--reset" in sys.argv
 
         if do_reset:
@@ -455,30 +403,19 @@ def seed():
             return
 
         # --- Groups ---
-        groups = []
-        for i, g in enumerate(GROUPS):
+        group_map = {}
+        for g in GROUPS:
             group = Group(name=g["name"], description=g["description"])
             group.topics = g["topics"]
-            # Schedule a meeting 3 days from now on the first group
-            if i == 0:
+            if g.get("schedule_meeting"):
                 group.next_meeting_at = datetime.utcnow() + timedelta(days=3)
             db.add(group)
             db.flush()
             group_map[g["name"]] = group
 
-        # Create users
+        # --- Users, Profiles & Memberships ---
         user_map = {}
-        for u in USERS:
-            existing = db.query(User).filter(User.email == u["email"]).first()
-            if existing:
-                user_map[u["email"]] = existing
-                continue
-
-            groups.append(group)
-        db.flush()
-
-        # --- Users & Profiles ---
-        users = []
+        margaret = None
         for u in USERS:
             user = User(
                 email=u["email"],
@@ -491,114 +428,83 @@ def seed():
 
             profile = Profile(
                 user_id=user.id,
-                guardian_enabled=False,
+                guardian_enabled=u.get("guardian", False),
                 onboarding_complete=True,
             )
             profile.interests = u["interests"]
             profile.personality_scores = u["personality"]
-                guardian_enabled=u["guardian"],
-                onboarding_complete=True,
-            )
-            profile.interests = u["interests"]
             db.add(profile)
-            users.append(user)
-        db.flush()
 
             for i, group_name in enumerate(u["groups"]):
                 group = group_map.get(group_name)
                 if group:
-                    membership = GroupMembership(
+                    db.add(GroupMembership(
                         user_id=user.id,
                         group_id=group.id,
                         is_favorite=(i < 2),
-                    )
-                    db.add(membership)
+                    ))
+
+            if u["email"] == "test@turtle.app":
+                margaret = user
 
         db.flush()
 
-        # Create messages
+        # --- Guardian link for Margaret ---
+        if margaret:
+            db.add(GuardianLink(
+                senior_id=margaret.id,
+                guardian_email="fdougher@nd.edu",
+                accepted=True,
+            ))
+
+        # --- Chat messages ---
         for i, m in enumerate(MESSAGES):
             group = group_map.get(m["group"])
             sender = user_map.get(m["sender"])
             if group and sender:
-                msg = Message(
+                db.add(Message(
                     group_id=group.id,
                     sender_id=sender.id,
                     content=m["content"],
                     is_flagged=m.get("flagged", False),
-                    flag_reason=m.get("flag_reason", None),
+                    flag_reason=m.get("flag_reason"),
                     created_at=datetime.utcnow() - timedelta(hours=len(MESSAGES) - i),
-                )
-                db.add(msg)
-
-        db.commit()
-        print("Seeded successfully!")
-        print(f"  Created {len(GROUPS)} groups")
-        print(f"  Created {len(USERS)} users")
-        print(f"  Created {len(MESSAGES)} messages")
-        # --- Guardian link for Margaret ---
-        db.add(GuardianLink(
-            senior_id=users[0].id,
-            guardian_email="fdougher@nd.edu",
-            accepted=True,
-        ))
-
-        # --- Memberships ---
-        for group_idx, user_indices in MEMBERSHIPS.items():
-            for i, user_idx in enumerate(user_indices):
-                db.add(GroupMembership(
-                    user_id=users[user_idx].id,
-                    group_id=groups[group_idx].id,
-                    is_favorite=(i == 0 and user_idx == 0),
                 ))
-        db.flush()
 
-        # --- Chat messages ---
-        for group_idx, user_idx, content, minutes_ago in MESSAGES:
-            db.add(Message(
-                group_id=groups[group_idx].id,
-                sender_id=users[user_idx].id,
-                content=content,
-                created_at=datetime.utcnow() - timedelta(minutes=minutes_ago),
-            ))
-
-        # --- Activity logs (past calls) ---
-        call_log = [
-            (0, 0, 45, 7),   # Margaret, Garden group, 45 min, 7 days ago
-            (0, 0, 30, 14),  # Margaret, Garden group, 30 min, 14 days ago
-            (2, 0, 60, 5),   # Margaret, Movie group, 60 min, 5 days ago
-            (2, 1, 60, 5),   # Henry, Movie group, 60 min, 5 days ago
-            (4, 2, 45, 3),   # Dorothy, Book Club, 45 min, 3 days ago
-            (5, 1, 30, 10),  # Henry, Cooking group, 30 min, 10 days ago
-        ]
-        for group_idx, user_idx, duration, days_ago in call_log:
-            db.add(Activity(
-                user_id=users[user_idx].id,
-                group_id=groups[group_idx].id,
-                activity_type="call",
-                duration_minutes=duration,
-                created_at=datetime.utcnow() - timedelta(days=days_ago),
-            ))
+        # --- Activity logs for guardian dashboard ---
+        garden = group_map.get("Garden Enthusiasts")
+        movies = group_map.get("Classic Movie Buffs")
+        books  = group_map.get("Book Club Friends")
+        if margaret and garden:
+            db.add(Activity(user_id=margaret.id, group_id=garden.id, activity_type="call", duration_minutes=45, created_at=datetime.utcnow() - timedelta(days=7)))
+            db.add(Activity(user_id=margaret.id, group_id=garden.id, activity_type="call", duration_minutes=30, created_at=datetime.utcnow() - timedelta(days=14)))
+        if margaret and movies:
+            db.add(Activity(user_id=margaret.id, group_id=movies.id, activity_type="call", duration_minutes=60, created_at=datetime.utcnow() - timedelta(days=5)))
+        if margaret and books:
+            db.add(Activity(user_id=margaret.id, group_id=books.id,  activity_type="call", duration_minutes=45, created_at=datetime.utcnow() - timedelta(days=3)))
 
         # --- Sample meeting report ---
-        db.add(MeetingReport(
-            user_id=users[0].id,
-            group_id=groups[2].id,
-            flag_password_request=False,
-            flag_offensive_language=False,
-            flag_confusing=True,
-            additional_notes="Someone mentioned sending money but I think it was a misunderstanding.",
-            created_at=datetime.utcnow() - timedelta(days=5),
-        ))
+        if margaret and movies:
+            db.add(MeetingReport(
+                user_id=margaret.id,
+                group_id=movies.id,
+                flag_password_request=False,
+                flag_offensive_language=False,
+                flag_confusing=True,
+                additional_notes="Someone mentioned sending money but I think it was a misunderstanding.",
+                created_at=datetime.utcnow() - timedelta(days=5),
+            ))
 
         db.commit()
 
         print("\n✅ Seeded successfully!\n")
-        print("Test accounts:")
-        for u in USERS:
-            print(f"  {u['email']} / {u['password']}  ({u['name']})")
-        print(f"\n{len(GROUPS)} groups created, memberships and chat history populated.")
-        print("Guardian dashboard: log in as margaret@turtle.app and visit /guardian\n")
+        print("Primary test account:")
+        print("  test@turtle.app / password123  (Margaret Thompson)\n")
+        print("Additional accounts (all use password123):")
+        for u in USERS[1:]:
+            print(f"  {u['email']}  ({u['name']})")
+        print(f"\n{len(GROUPS)} groups, {len(USERS)} users, {len(MESSAGES)} chat messages created.")
+        print("Guardian dashboard: log in as test@turtle.app and visit /guardian\n")
 
     finally:
         db.close()
